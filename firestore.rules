@@ -1,10 +1,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write to all documents
-    // Note: For production, you should add proper authentication and authorization rules
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Helper function to validate data structure
+    function hasValidStructure() {
+      return request.resource.data.keys().hasAny(['familyMembers']) &&
+             request.resource.data.familyMembers is map;
+    }
+
+    // Helper function to check if this is a valid participant update
+    function isValidParticipantUpdate() {
+      // Must have familyMembers
+      return hasValidStructure() &&
+             // Can't delete members (keys must match or grow)
+             resource.data.familyMembers.keys().toSet()
+               .difference(request.resource.data.familyMembers.keys().toSet())
+               .size() == 0;
+    }
+
+    // Match any collection that could be used for Secret Santa events
+    match /{collection}/{year} {
+
+      // Allow reading event data
+      // Everyone needs to see participants and gift ideas
+      allow read: if true;
+
+      // Allow creating new events
+      // Note: In production, protect your Firebase API keys with domain restrictions
+      // and use Firebase App Check for additional security
+      allow create: if hasValidStructure();
+
+      // Allow deleting events
+      // Note: You may want to add adminSecret check here
+      allow delete: if resource != null;
+
+      // Allow updates for:
+      // - Drawing names (updating assigned, santaFor, hasSanta)
+      // - Adding gift ideas
+      // - Admin operations
+      allow update: if isValidParticipantUpdate();
+    }
+
+    // Add a metadata collection for tracking operations (optional)
+    match /metadata/{document} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

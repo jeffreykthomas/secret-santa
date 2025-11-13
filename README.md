@@ -1,245 +1,103 @@
 # Secret Santa Application
 
-A modern, configurable Secret Santa gift exchange application built with Vue 3, Quasar Framework, and Firebase. This application supports multiple independent versions, allowing you to run separate Secret Santa exchanges with different configurations using a single Firebase project.
+Multi-version Secret Santa gift exchange app built with Vue 3, Quasar, and Firebase. Run multiple independent Secret Santa exchanges with different configurations using a single Firebase project.
 
 ## 📋 Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
-- [Architecture Overview](#-architecture-overview)
 - [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Development](#-development)
 - [Configuration System](#-configuration-system)
-- [Admin Interface](#-admin-interface)
+- [Development](#-development)
 - [Testing Mode](#-testing-mode)
+- [Admin Interface](#-admin-interface)
 - [Deployment](#-deployment)
-- [Project Structure](#-project-structure)
-- [Key Components](#-key-components)
 - [Firebase Setup](#-firebase-setup)
+- [Project Structure](#-project-structure)
 - [Security](#-security)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [Additional Documentation](#-additional-documentation)
 
 ## ✨ Features
 
-### Core Functionality
-
-- **Secret Santa Assignment**: Automatically assign Secret Santa relationships with smart logic to prevent partners being matched together
-- **Multiple Giftees**: Configure 1 or 2 giftees per Santa
-- **Gift Ideas Management**: Family members can add and view gift ideas
-- **Past Assignments Tracking**: Avoids repeating the same assignments from previous years
-- **Randomized Assignments**: Fair and random distribution of Secret Santa assignments
-
-### Multi-Version Support
-
-- **Multiple Configurations**: Run different Secret Santa exchanges with independent settings
-- **Separate Data Collections**: Each version stores data in its own Firestore collection
-- **Shared Firebase Project**: All versions use the same Firebase project for simplified management
-- **Version-Specific Titles**: Customize the app title for each version
-
-### Admin Features
-
-- **Family Member Management**: Add, edit, and delete family members via UI
-- **Partner Relationships**: Define couples to prevent partner-to-partner assignments
-- **Reset Functionality**: Clear all assignments to start fresh
-- **Testing Mode**: Switch between configurations in development without restarting
-
-### User Experience
-
-- **Mobile-First Design**: Responsive layout works on all devices
-- **Modern UI**: Clean, festive design with Quasar Material Design components
-- **Real-Time Updates**: Changes sync with Firestore in real-time
-- **Persistent State**: Remembers your selections across sessions
+- **Smart Assignment Logic**: Prevents partner-to-partner matches and repeating past year assignments
+- **Configurable Giftees**: 1 or 2 giftees per Santa
+- **Multi-Version Support**: Run multiple Secret Santa exchanges with separate data collections
+- **Admin Interface**: Manage family members, partners, and reset assignments via UI
+- **Testing Mode**: Switch between configurations in development without rebuilding
+- **Gift Ideas**: Members can add and view gift ideas
+- **Responsive Design**: Works on all devices
 
 ## 🛠 Tech Stack
 
-- **Frontend Framework**: [Vue 3](https://vuejs.org/) (Composition API with TypeScript)
-- **UI Framework**: [Quasar v2](https://quasar.dev/) (Material Design components)
-- **Build Tool**: [Vite](https://vitejs.dev/) (via Quasar CLI)
-- **Backend**: [Firebase](https://firebase.google.com/)
-  - Firestore (NoSQL database)
-  - Hosting (static site hosting)
-- **Language**: TypeScript
-- **State Management**: Vue 3 Composition API with reactive refs
-- **Routing**: Vue Router 4
+- **Frontend**: Vue 3 (Composition API + TypeScript), Quasar v2, Vue Router 4
+- **Build**: Vite via Quasar CLI
+- **Backend**: Firebase (Firestore + Hosting)
 
-## 🏗 Architecture Overview
+### Architecture
 
-### Multi-Configuration Architecture
-
-The application uses a unique multi-configuration system that allows multiple independent Secret Santa exchanges:
+Each version uses a separate Firestore collection but shares the same Firebase project:
 
 ```
-┌─────────────────────────────────────────────┐
-│         Firebase Project                    │
-│         (secret-santa-e3f0f)               │
-│                                             │
-│  ┌──────────────┐      ┌──────────────┐   │
-│  │ Collection:  │      │ Collection:  │   │
-│  │ santas       │      │ santas-v2    │   │
-│  │              │      │              │   │
-│  │ (Version 1)  │      │ (Version 2)  │   │
-│  │ 1 giftee     │      │ 2 giftees    │   │
-│  └──────────────┘      └──────────────┘   │
-│                                             │
-│  ┌──────────────┐      ┌──────────────┐   │
-│  │ Hosting:     │      │ Hosting:     │   │
-│  │ default      │      │ version2     │   │
-│  └──────────────┘      └──────────────┘   │
-└─────────────────────────────────────────────┘
+Firebase Project (secret-santa-e3f0f)
+├── Collection: santas (Version 1, 1 giftee)
+├── Collection: santas-v2 (Version 2, 2 giftees)
+├── Hosting: default
+└── Hosting: version2
 ```
 
-### Data Flow
+**Key Points**:
 
-```
-User Action → Vue Component → Firestore API → Firebase Firestore
-                   ↓                              ↓
-            Local State Update              Data Persistence
-                   ↓                              ↓
-              UI Update  ←──────────────── Real-time Sync
-```
-
-### Key Design Decisions
-
-1. **Separate Collections**: Each version uses a different Firestore collection for complete data isolation
-2. **Shared Configuration**: Firebase credentials are shared but collection names differ
-3. **Build-Time Injection**: Configuration values are injected at build time via environment variables
-4. **Runtime Switching** (Dev Only): Testing mode allows switching configurations without rebuilding
+- Configuration values injected at build time via environment variables
+- Complete data isolation between versions
+- Dev mode supports runtime switching between configs
 
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
-yarn install
-
-# Run development server (with testing mode)
-yarn dev
-
-# Open browser to http://localhost:9000
-# Navigate to /admin to set up family members
+yarn install                          # Install dependencies
+yarn dev                              # Start dev server with testing mode
+# Open http://localhost:9000/admin to set up family members
 ```
 
-## 📦 Installation
-
-### Prerequisites
-
-- **Node.js**: v16, v18, or v20
-- **Yarn**: >= 1.21.1 (or npm >= 6.13.4)
-- **Firebase Account**: Free tier is sufficient
-
-### Steps
-
-1. **Clone the repository**:
-
-   ```bash
-   git clone <repository-url>
-   cd secret-santa
-   ```
-
-2. **Install dependencies**:
-
-   ```bash
-   yarn install
-   ```
-
-3. **Configure Firebase** (see [Firebase Setup](#firebase-setup) for details):
-
-   - Create a Firebase project
-   - Update `config.default.js` with your Firebase credentials
-
-4. **Set up Firestore**:
-
-   ```bash
-   # Deploy Firestore rules
-   firebase deploy --only firestore:rules
-   ```
-
-5. **Run the development server**:
-
-   ```bash
-   yarn dev
-   ```
-
-6. **Set up family members**:
-   - Navigate to `http://localhost:9000/admin`
-   - Add family members and configure partners
+**Prerequisites**: Node.js v16/18/20, Yarn >= 1.21.1, Firebase account (free tier)
 
 ## 💻 Development
 
-### Available Commands
+### Commands
 
 ```bash
 # Development
-yarn dev              # Run default version with testing mode (both configs loaded)
-yarn dev:v2           # Same as dev - testing mode enabled
+yarn dev                  # Dev server with testing mode (both configs)
+yarn dev:v2               # Same as dev
 
 # Building
-yarn build            # Build with default configuration
-yarn build:default    # Explicitly build default version
-yarn build:v2         # Build version 2
+yarn build:default        # Build version 1
+yarn build:v2             # Build version 2
 
 # Code Quality
-yarn lint             # Run ESLint
-yarn format           # Format code with Prettier
+yarn lint                 # ESLint
+yarn format               # Prettier
 
 # Deployment
-yarn deploy:default   # Build and deploy default version
-yarn deploy:v2        # Build and deploy version 2
+yarn deploy:default       # Build + deploy version 1
+yarn deploy:v2            # Build + deploy version 2
 ```
 
-### Development Workflow
+### Workflow
 
-1. **Start the dev server**:
-
-   ```bash
-   yarn dev
-   ```
-
-2. **Access the application**:
-
-   - Main page: `http://localhost:9000`
-   - Admin page: `http://localhost:9000/admin`
-
-3. **Make changes**:
-
-   - Edit Vue components in `src/`
-   - Vite provides hot module replacement (HMR)
-   - Changes appear instantly in the browser
-
-4. **Test both versions** (see [Testing Mode](#testing-mode)):
-
-   - Go to `/admin`
-   - Use the testing mode toggle to switch configurations
-   - Verify both versions work correctly
-
-5. **Format and lint**:
-   ```bash
-   yarn format && yarn lint
-   ```
-
-### Development Tips
-
-- **Hot Reload**: Changes to `.vue`, `.ts`, and `.scss` files trigger automatic reload
-- **TypeScript**: Full TypeScript support with type checking
-- **Vue Devtools**: Install the Vue Devtools browser extension for debugging
-- **Firebase Emulator** (Optional): Use Firebase emulators for local testing
+1. Run `yarn dev`
+2. Main app: `http://localhost:9000`, Admin: `http://localhost:9000/admin`
+3. Edit components in `src/` (HMR enabled)
+4. Switch configs in admin UI to test both versions
+5. Run `yarn format && yarn lint` before committing
 
 ## ⚙️ Configuration System
 
-### Overview
+Each version has its own: app title, giftees per Santa (1-2), Firestore collection, and hosting target.
 
-The application supports multiple independent configurations, each with its own:
+### Config Files
 
-- App title
-- Number of giftees per Santa (1 or 2)
-- Firestore collection name
-- Firebase hosting target
-
-### Configuration Files
-
-#### `config.default.js` - Version 1
+**`config.default.js`**:
 
 ```javascript
 module.exports = {
@@ -247,831 +105,261 @@ module.exports = {
   gifteesPerSanta: 1,
   collectionName: 'santas',
   firebase: {
-    /* Firebase credentials */
+    /* credentials */
   },
 };
 ```
 
-#### `config.version2.js` - Version 2
+**`config.version2.js`**:
 
 ```javascript
 module.exports = {
   appTitle: 'Leinert Family Secret Santa',
   gifteesPerSanta: 2,
-  collectionName: 'santas-v2',
+  collectionName: 'santas-v2', // Must be unique
   firebase: {
-    /* Same Firebase credentials */
+    /* same credentials */
   },
 };
 ```
 
-### How Configuration Works
+### How It Works
 
-1. **Build Time**:
+- **Build Time**: `VERSION` env var determines which config loads → values injected as `process.env.APP_TITLE`, etc.
+- **Production**: Config baked into build, cannot change without rebuilding
+- **Development**: Both configs loaded, switch via admin UI, selection persists in localStorage
 
-   - `VERSION` environment variable determines which config to use
-   - Quasar config loads the appropriate file
-   - Values are injected as `process.env.APP_TITLE`, etc.
+### Add New Version
 
-2. **Runtime** (Production):
-
-   - Configuration is baked into the build
-   - Cannot be changed without rebuilding
-
-3. **Runtime** (Development/Testing Mode):
-   - Both configurations are loaded
-   - Can switch between them via admin UI
-   - Selection persists in localStorage
-
-### Creating a New Version
-
-1. **Create configuration file**:
-
-   ```bash
-   cp config.default.js config.version3.js
-   ```
-
-2. **Edit the new config**:
-
-   ```javascript
-   module.exports = {
-     appTitle: 'My Custom Secret Santa',
-     gifteesPerSanta: 2,
-     collectionName: 'santas-v3', // Must be unique!
-     firebase: {
-       /* Same as other versions */
-     },
-   };
-   ```
-
-3. **Add build/deploy scripts** in `package.json`:
-
+1. Copy config: `cp config.default.js config.version3.js`
+2. Edit: change `appTitle`, `gifteesPerSanta`, `collectionName` (must be unique)
+3. Add to `package.json` scripts:
    ```json
-   {
-     "scripts": {
-       "build:v3": "VERSION=version3 quasar build",
-       "deploy:v3": "VERSION=version3 yarn build && firebase deploy --only hosting:version3"
-     }
-   }
+   "build:v3": "VERSION=version3 quasar build",
+   "deploy:v3": "VERSION=version3 yarn build && firebase deploy --only hosting:version3"
    ```
-
-4. **For testing mode**, update `src/boot/register-configs.ts`:
-
-   ```typescript
-   registerConfig('version3', {
-     appTitle: 'My Custom Secret Santa',
-     gifteesPerSanta: 2,
-     collectionName: 'santas-v3',
-   });
-   ```
-
-5. **Configure Firebase hosting**:
-   ```bash
-   firebase target:apply hosting version3 your-site-name
-   ```
-
-## 🔧 Admin Interface
-
-The admin interface provides full control over family members and assignments.
-
-### Accessing Admin
-
-Navigate to `/admin` in your browser:
-
-- Development: `http://localhost:9000/admin`
-- Production: `https://your-domain.com/admin`
-
-**Note**: The admin link is intentionally hidden from the main UI to prevent accidental access.
-
-### Features
-
-#### 1. Family Member Management
-
-**Add a Member**:
-
-- Fill in the "Name" field
-- Optionally select a "Partner" from existing members
-- Click "Add Member"
-- Member is immediately saved to Firestore
-
-**Edit a Member**:
-
-- Click the ✏️ Edit button
-- Update name or partner relationship
-- Click "Save"
-
-**Delete a Member**:
-
-- Click the 🗑️ Delete button
-- Confirm deletion
-- Member is removed from database
-
-**Partner Relationships**:
-
-- Partners prevent being matched together as Secret Santa
-- Relationships are mutual (A's partner is B, B's partner is A)
-- Partners can still receive gifts from each other
-
-#### 2. Reset Functionality
-
-**Reset All Assignments**:
-
-- Clears all Secret Santa assignments
-- Preserves family members
-- Preserves gift ideas
-- Useful for starting a new year or fixing mistakes
-
-**When to Reset**:
-
-- Starting a new Secret Santa season
-- Need to reassign everyone
-- Changed partner relationships
-- Added/removed family members
-
-#### 3. Testing Mode (Development Only)
-
-**Switch Configurations**:
-
-- Toggle between Default and Version2
-- See immediate changes to title, collection, and giftees
-- Selection persists across page refreshes
-- Each configuration has separate family members
-
-### Admin Best Practices
-
-1. **Initial Setup**:
-
-   - Add all family members first
-   - Set partner relationships
-   - Then go to main page for assignments
-
-2. **During the Season**:
-
-   - Users add their own gift ideas on main page
-   - Use admin only for adding/removing people
-
-3. **Starting Fresh**:
-   - Reset all assignments
-   - Family members and gift ideas remain
-   - Users can pick names again
+4. Update `src/boot/register-configs.ts` for testing mode
+5. Set Firebase target: `firebase target:apply hosting version3 your-site-name`
 
 ## 🧪 Testing Mode
 
-Testing mode is a powerful development feature that allows switching between configurations without restarting the server.
+Development feature that allows switching between configurations without restarting.
 
-### Enabling Testing Mode
+**Enable**: Run `yarn dev` (both configs auto-loaded)
 
-Testing mode is **automatically enabled** when running:
+**Usage**:
 
-```bash
-yarn dev
-```
+1. Start dev server: `yarn dev`
+2. Go to `http://localhost:9000/admin`
+3. Find blue "🧪 Testing Mode" card
+4. Toggle between "Default" and "Version2"
+5. Selection saves to localStorage
 
-Both `config.default.js` and `config.version2.js` are loaded at startup.
+**What Changes**: App title, collection name, giftees per Santa, family members all update instantly.
 
-### How to Use
+**Important**: Keep `src/boot/register-configs.ts` in sync with config files. See `src/boot/README.md` for details.
 
-1. **Start development server**:
+## 🔧 Admin Interface
 
-   ```bash
-   yarn dev
-   ```
+Access at `/admin` (hidden from main UI to prevent accidental access).
 
-2. **Navigate to admin page**:
+### Features
 
-   ```
-   http://localhost:9000/admin
-   ```
+**Family Members**:
 
-3. **Look for the blue "🧪 Testing Mode" card** at the top
+- Add: Fill name + optional partner → Click "Add Member"
+- Edit: Click ✏️ → Update → Save
+- Delete: Click 🗑️ → Confirm
+- Partners prevent being matched together (mutual relationship)
 
-4. **Toggle between configurations**:
+**Reset All Assignments**:
 
-   - Click "Default" or "Version2" buttons
-   - Watch the title update immediately
-   - Collection name changes
-   - Giftees per Santa updates
+- Clears Secret Santa assignments
+- Preserves family members and gift ideas
+- Use when starting new season or after roster changes
 
-5. **Your selection is saved** in localStorage and persists
+**Testing Mode** (dev only):
 
-### What Changes When Switching
-
-When you switch configurations:
-
-- ✅ App title updates in header
-- ✅ Collection name changes (shown in banner)
-- ✅ Giftees per Santa setting updates
-- ✅ Family members reload from new collection
-- ✅ Choice persists across refreshes
-
-### Testing Workflow
-
-```bash
-# Example: Testing both versions
-
-# 1. Start dev server
-yarn dev
-
-# 2. Set up Version 1
-#    - Go to /admin
-#    - Select "Default" config
-#    - Add family members
-#    - Test assignments
-
-# 3. Set up Version 2
-#    - Go to /admin
-#    - Select "Version2" config
-#    - Add different family members
-#    - Test assignments with 2 giftees
-
-# 4. Switch back and forth
-#    - Toggle configurations
-#    - Verify data isolation
-#    - Confirm both work correctly
-```
-
-### Important Note
-
-**Keep Configs in Sync**: The configurations in `src/boot/register-configs.ts` must match your config files. When you update `config.default.js` or `config.version2.js`, also update `register-configs.ts` for testing mode to work properly.
-
-See `src/boot/README.md` for technical details.
+- Toggle between configs
+- Immediate title/collection/giftees updates
+- Separate family members per config
 
 ## 🚀 Deployment
 
-### Prerequisites
+### Setup
 
-1. **Create Firebase hosting sites**:
-
-   - Default site is created automatically
-   - For additional versions, add sites in Firebase Console
-
-2. **Configure hosting targets**:
+1. Create hosting sites (default auto-created, add others in Firebase Console)
+2. Configure targets:
    ```bash
    firebase target:apply hosting default secret-santa-e3f0f
    firebase target:apply hosting version2 your-v2-site-name
    ```
 
-### Deploy a Version
-
-#### Default Version
+### Deploy
 
 ```bash
-yarn deploy:default
+yarn deploy:default    # Build + deploy version 1
+yarn deploy:v2         # Build + deploy version 2
 ```
 
-This will:
+Manual: `yarn build:default` then `firebase deploy --only hosting:default`
 
-1. Build the app with default configuration
-2. Deploy to the default hosting site
+**Checklist**: Test locally → Build → Deploy → Verify URL → Test production → Check Firestore collection
 
-#### Version 2
-
-```bash
-yarn deploy:v2
-```
-
-This will:
-
-1. Build the app with version2 configuration
-2. Deploy to the version2 hosting site
-
-### Manual Deployment
-
-```bash
-# Build
-yarn build:default
-
-# Deploy
-firebase deploy --only hosting:default
-
-# Or deploy specific target
-firebase deploy --only hosting:version2
-```
-
-### Deployment Checklist
-
-- [ ] Test locally with `yarn dev`
-- [ ] Verify both configurations work in testing mode
-- [ ] Build the version: `yarn build:default` or `yarn build:v2`
-- [ ] Test the production build locally
-- [ ] Deploy: `yarn deploy:default` or `yarn deploy:v2`
-- [ ] Verify deployment at hosting URL
-- [ ] Test functionality in production
-- [ ] Check Firestore data is writing to correct collection
-
-### Rollback
-
-If you need to rollback a deployment:
-
-```bash
-firebase hosting:clone your-site-id:previous-version-id your-site-id:live
-```
+**Rollback**: `firebase hosting:clone your-site-id:previous-version-id your-site-id:live`
 
 ## 📁 Project Structure
 
 ```
-secret-santa/
-├── src/
-│   ├── boot/                  # Boot files (run before app starts)
-│   │   ├── firebase.ts        # Firebase initialization
-│   │   ├── config.ts          # Configuration management
-│   │   └── register-configs.ts # Testing mode config registration
-│   ├── components/
-│   │   ├── SecretSanta.vue    # Main Secret Santa component
-│   │   ├── ConfirmDialog.vue  # Confirmation dialog
-│   │   └── models.ts          # TypeScript interfaces
-│   ├── layouts/
-│   │   └── MainLayout.vue     # Main app layout with header
-│   ├── pages/
-│   │   ├── IndexPage.vue      # Home page (uses SecretSanta component)
-│   │   ├── AdminPage.vue      # Admin interface
-│   │   └── ErrorNotFound.vue  # 404 page
-│   ├── router/
-│   │   ├── index.ts           # Router setup
-│   │   └── routes.ts          # Route definitions
-│   ├── css/
-│   │   ├── app.scss           # Global styles
-│   │   └── quasar.variables.scss # Quasar theme variables
-│   ├── assets/                # Static assets (images, etc.)
-│   └── App.vue                # Root component
-├── public/                    # Static files (copied to dist/)
-│   ├── favicon.ico
-│   └── icons/
-├── config.default.js          # Default version configuration
-├── config.version2.js         # Version 2 configuration
-├── quasar.config.js           # Quasar framework configuration
-├── firebase.json              # Firebase project configuration
-├── firestore.rules            # Firestore security rules
-├── firestore.indexes.json     # Firestore indexes
-├── package.json               # Dependencies and scripts
-├── tsconfig.json              # TypeScript configuration
-└── README.md                  # This file
+src/
+├── boot/                    # Bootstrap files
+│   ├── firebase.ts          # Firebase init
+│   ├── config.ts            # Config management
+│   └── register-configs.ts  # Testing mode config registration
+├── components/
+│   ├── SecretSanta.vue      # Main component (assignment logic, gift ideas)
+│   ├── ConfirmDialog.vue    # Confirmation dialog
+│   └── models.ts            # TypeScript interfaces
+├── pages/
+│   ├── IndexPage.vue        # Home (uses SecretSanta)
+│   ├── AdminPage.vue        # Admin interface (CRUD, reset, testing mode)
+│   └── ErrorNotFound.vue    # 404
+├── layouts/
+│   └── MainLayout.vue       # Header + layout
+├── router/                  # Vue Router setup
+├── css/                     # Global styles
+└── App.vue                  # Root component
+
+config.default.js            # Version 1 config
+config.version2.js           # Version 2 config
+firebase.json                # Firebase project config
+firestore.rules              # Security rules
+quasar.config.js             # Quasar framework config
 ```
 
-## 🔑 Key Components
+### Key Files
 
-### `SecretSanta.vue`
-
-The main component that handles:
-
-- Family member selection
-- Secret Santa assignment logic
-- Gift ideas display and management
-- Firestore data synchronization
-
-**Key Features**:
-
-- Prevents partner-to-partner assignments
-- Avoids repeating past year assignments
-- Handles multiple giftees per Santa
-- Real-time gift idea updates
-
-### `AdminPage.vue`
-
-Administrative interface for:
-
-- Adding/editing/deleting family members
-- Setting partner relationships
-- Resetting assignments
-- Switching configurations (testing mode)
-
-**Key Features**:
-
-- Full CRUD operations for family members
-- Visual display of assignments
-- Testing mode toggle
-- Collection name display
-
-### `MainLayout.vue`
-
-App layout wrapper that provides:
-
-- Header with app title
-- Navigation structure
-- Responsive layout
-- Settings icon (links to admin)
-
-### Configuration System (`src/boot/`)
-
-**`config.ts`**:
-
-- Manages active configuration
-- Provides reactive refs for config values
-- Handles configuration switching
-- Saves selection to localStorage
-
-**`register-configs.ts`**:
-
-- Registers configurations for testing mode
-- Loads both default and version2 configs
-- Makes them available at runtime
-
-**`firebase.ts`**:
-
-- Initializes Firebase
-- Sets up Firestore connection
-- Exports Firestore instance
+- **`SecretSanta.vue`**: Assignment logic, prevents partner matches, avoids repeating past years, handles multiple giftees
+- **`AdminPage.vue`**: Family member CRUD, partner relationships, reset functionality, testing mode toggle
+- **`boot/config.ts`**: Manages active config, reactive refs, localStorage persistence
+- **`boot/register-configs.ts`**: Loads both configs for testing mode
+- **`boot/firebase.ts`**: Firebase/Firestore initialization
 
 ## 🔥 Firebase Setup
 
-### 1. Create Firebase Project
+### Initial Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click "Add project"
-3. Follow the setup wizard
-4. Enable Firestore Database
-5. Enable Hosting
+1. [Firebase Console](https://console.firebase.google.com/) → Add project → Enable Firestore + Hosting
+2. Project Settings → Add web app → Copy config object
+3. Update `config.default.js` and `config.version2.js` with Firebase credentials:
+   ```javascript
+   firebase: {
+     apiKey: 'your-api-key',
+     authDomain: 'your-project.firebaseapp.com',
+     projectId: 'your-project-id',
+     // ... etc
+   }
+   ```
 
-### 2. Get Firebase Configuration
+### Firestore Setup
 
-1. In Firebase Console, go to Project Settings
-2. Scroll to "Your apps"
-3. Click "Web" icon to add a web app
-4. Copy the Firebase configuration object
+1. Create database in test mode
+2. Deploy rules: `firebase deploy --only firestore:rules`
+3. Structure (auto-created):
+   ```
+   santas/2024/members/...
+   santas-v2/2024/members/...
+   ```
 
-### 3. Update Configuration Files
+### Hosting Setup
 
-Update `config.default.js` with your Firebase credentials:
-
-```javascript
-module.exports = {
-  appTitle: 'Your Secret Santa',
-  gifteesPerSanta: 1,
-  collectionName: 'santas',
-  firebase: {
-    apiKey: 'your-api-key',
-    authDomain: 'your-project.firebaseapp.com',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project.appspot.com',
-    messagingSenderId: 'your-sender-id',
-    appId: 'your-app-id',
-    measurementId: 'your-measurement-id',
-  },
-};
+```bash
+npm install -g firebase-tools
+firebase login
+firebase init hosting  # If not done
 ```
 
-Copy the same Firebase config to `config.version2.js` (only change `appTitle`, `gifteesPerSanta`, and `collectionName`).
+For multiple versions:
 
-### 4. Set Up Firestore
-
-1. **Create database**:
-
-   - In Firebase Console, go to Firestore Database
-   - Click "Create database"
-   - Start in test mode (we'll update rules next)
-
-2. **Deploy security rules**:
-
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
-
-3. **Structure** (created automatically):
-
-   ```
-   santas/
-   └── 2024/
-       └── members/
-           ├── [member-id-1]
-           ├── [member-id-2]
-           └── ...
-
-   santas-v2/
-   └── 2024/
-       └── members/
-           ├── [member-id-1]
-           └── ...
-   ```
-
-### 5. Set Up Firebase Hosting
-
-1. **Install Firebase CLI**:
-
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-2. **Login**:
-
-   ```bash
-   firebase login
-   ```
-
-3. **Initialize** (if not done):
-
-   ```bash
-   firebase init hosting
-   ```
-
-4. **Create additional hosting sites** (for version 2):
-
-   - Go to Firebase Console → Hosting
-   - Click "Add another site"
-   - Give it a name (e.g., `your-project-v2`)
-
-5. **Configure hosting targets**:
+1. Firebase Console → Hosting → Add another site
+2. Configure targets:
    ```bash
    firebase target:apply hosting default your-default-site
    firebase target:apply hosting version2 your-v2-site
    ```
 
-### 6. Deploy
+### Useful Commands
 
 ```bash
-# Deploy default version
-yarn deploy:default
-
-# Deploy version 2
-yarn deploy:v2
-```
-
-### Firebase CLI Commands
-
-```bash
-# View hosting sites
-firebase hosting:sites:list
-
-# View active targets
-firebase target:list
-
-# Deploy only Firestore rules
-firebase deploy --only firestore:rules
-
-# Deploy only hosting
-firebase deploy --only hosting
-
-# View deployment history
-firebase hosting:releases:list
+firebase hosting:sites:list        # View sites
+firebase target:list                # View targets
+firebase deploy --only firestore    # Deploy rules only
+firebase hosting:releases:list      # View history
 ```
 
 ## 🔒 Security
 
-### Current Security Model
+**Current Security Measures**:
 
-**⚠️ Important**: The current Firestore rules allow read/write access to all documents. This is suitable for trusted family use but should be enhanced for broader deployments.
+✅ **Firestore Security Rules**: Validates data structure and prevents unauthorized deletions
+✅ **Environment Variables**: Firebase credentials stored in `.env` files (not committed)
+✅ **Read Restrictions**: Rules prevent malicious data manipulation
+✅ **Structure Validation**: All writes must maintain proper data format
 
-Current rules (`firestore.rules`):
+**Security Model**:
+- Reads are open (necessary for participants to see gift ideas)
+- Writes are validated (can't delete members or corrupt data structure)
+- Firebase API keys in environment variables
+- No authentication required for participants (by design for ease of use)
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-```
+**Important Notes**:
+- Firebase web API keys are designed to be public and visible in browser requests
+- Real security comes from Firestore rules, not hidden API keys
+- Domain restrictions can be added for production use
 
-### Recommended Security Enhancements
+**For Enhanced Security**:
 
-For production use, consider implementing:
+See **[SECURITY-GUIDE.md](./SECURITY-GUIDE.md)** for detailed security options including:
+- 🔐 Firebase App Check (recommended)
+- 🌐 Domain restrictions
+- 🔑 Admin secret keys
+- ⚡ Cloud Functions for admin operations
+- 👤 Firebase Authentication
 
-1. **Authentication**:
+**Git History Note**:
 
-   ```javascript
-   // Require authentication
-   match /{document=**} {
-     allow read, write: if request.auth != null;
-   }
-   ```
+If you previously committed Firebase credentials and want to remove them from git history, see **[SECURITY-SCRUB-GUIDE.md](./SECURITY-SCRUB-GUIDE.md)**. 
 
-2. **Collection-Specific Rules**:
-
-   ```javascript
-   // Only allow reading own assignment
-   match /santas/{year}/members/{memberId} {
-     allow read: if request.auth.uid == memberId;
-     allow write: if request.auth != null;
-   }
-   ```
-
-3. **Admin-Only Operations**:
-   ```javascript
-   // Require admin claim for member management
-   match /santas/{year}/members/{memberId} {
-     allow create, delete: if request.auth.token.admin == true;
-   }
-   ```
-
-### Firebase API Keys
-
-**Note**: Firebase client-side API keys can be safely committed to version control. They are not secret and security is enforced by Firestore Security Rules, not API keys.
-
-However, ensure:
-
-- Firestore rules are properly configured
-- Hosting security is set appropriately
-- Consider authentication for sensitive deployments
-
-### Admin Access
-
-Currently, the admin interface is "security by obscurity" (not linked in UI). For enhanced security:
-
-1. Add authentication
-2. Implement admin user roles
-3. Use Firebase Auth and custom claims
-4. Restrict admin routes in code
-5. Update Firestore rules accordingly
+However, for Firebase web apps, this is typically **not necessary** since:
+- Firebase API keys are designed to be public
+- Security is enforced by Firestore rules
+- Keys are visible in browser network requests anyway
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+| Issue                          | Solution                                                                                                 |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **Config not loading**         | Check config file exists, rebuild with explicit version, check console                                   |
+| **Firebase connection issues** | Verify credentials, run `firebase projects:list`, check network tab                                      |
+| **Testing mode not working**   | Ensure `yarn dev` (not prod), check both configs exist, verify `register-configs.ts`, clear localStorage |
+| **Data not saving**            | Check Firestore rules, verify collection name in config, check console logs                              |
+| **Wrong collection**           | Check active config in admin, verify collection name, clear localStorage                                 |
+| **Deploy fails**               | Check `firebase login`, verify targets with `firebase target:list`, check build output                   |
+| **Build errors**               | Clear `node_modules` and reinstall, check Node version (16/18/20), run lint/format                       |
 
-#### 1. Configuration Not Loading
+**Debug Mode**: Add console.logs in `src/boot/firebase.ts` and `src/boot/config.ts`
 
-**Symptoms**: Wrong title, wrong collection name, or default values showing
-
-**Solutions**:
-
-```bash
-# Check that config file exists
-ls config.default.js config.version2.js
-
-# Rebuild with explicit version
-yarn build:default
-
-# In development, check browser console for errors
-```
-
-#### 2. Firebase Connection Issues
-
-**Symptoms**: Data not loading, console errors about Firebase
-
-**Solutions**:
-
-```bash
-# Verify Firebase credentials in config files
-# Check that Firebase project is accessible
-firebase projects:list
-
-# Ensure Firestore is enabled in Firebase Console
-# Check browser network tab for failed requests
-```
-
-#### 3. Testing Mode Not Working
-
-**Symptoms**: Can't switch configurations, testing mode card not showing
-
-**Solutions**:
-
-- Ensure running `yarn dev` (not production build)
-- Check that both config files exist
-- Verify `register-configs.ts` has both configurations
-- Check browser console for errors
-- Clear localStorage: `localStorage.clear()`
-
-#### 4. Data Not Saving to Firestore
-
-**Symptoms**: Changes don't persist, data disappears on refresh
-
-**Solutions**:
-
-```bash
-# Check Firestore rules allow writes
-firebase deploy --only firestore:rules
-
-# Verify network tab shows successful requests
-# Check correct collection name in config
-# Ensure Firebase is initialized (check console logs)
-```
-
-#### 5. Wrong Collection Being Used
-
-**Symptoms**: Data from wrong version appears, mixed data
-
-**Solutions**:
-
-- Check active configuration in admin page
-- Verify collection name in config file
-- Clear localStorage and select correct version
-- Check Firebase Console to see which collection has data
-
-#### 6. Deployment Fails
-
-**Symptoms**: `firebase deploy` errors
-
-**Solutions**:
-
-```bash
-# Check Firebase CLI is installed and logged in
-firebase login
-firebase projects:list
-
-# Verify hosting targets are set
-firebase target:list
-
-# Check that build completed successfully
-ls dist/spa/
-
-# Try deploying without target
-firebase deploy --only hosting
-```
-
-#### 7. Build Errors
-
-**Symptoms**: `yarn build` fails with TypeScript or Vite errors
-
-**Solutions**:
-
-```bash
-# Clear node_modules and reinstall
-rm -rf node_modules yarn.lock
-yarn install
-
-# Check Node version
-node --version  # Should be 16, 18, or 20
-
-# Try running linter first
-yarn lint
-yarn format
-```
-
-### Getting Help
-
-1. **Check browser console** for error messages
-2. **Check terminal** for build/deploy errors
-3. **Review Firebase Console** for Firestore errors
-4. **Check documentation files**:
-   - `QUICK-START.md` - Quick reference
-   - `SETUP-GUIDE.md` - Initial setup
-   - `ADMIN-GUIDE.md` - Admin interface
-   - `TESTING-GUIDE.md` - Testing mode details
-
-### Debug Mode
-
-Enable verbose logging:
-
-```javascript
-// In src/boot/firebase.ts
-console.log('Firebase initialized:', app);
-console.log('Firestore instance:', db);
-
-// In src/boot/config.ts
-console.log('Active config:', activeConfig.value);
-console.log('Available configs:', configurations);
-```
-
-## 🤝 Contributing
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make changes and test thoroughly
-4. Format and lint: `yarn format && yarn lint`
-5. Commit changes: `git commit -m "Add my feature"`
-6. Push to branch: `git push origin feature/my-feature`
-7. Open a Pull Request
-
-### Code Style
-
-- **TypeScript**: Use strict typing
-- **Vue 3**: Composition API with `<script setup>`
-- **Formatting**: Run `yarn format` before committing
-- **Linting**: Ensure `yarn lint` passes
-- **Comments**: Add comments for complex logic
-
-### Testing
-
-Before submitting:
-
-- [ ] Test in development mode with both configurations
-- [ ] Test production build locally
-- [ ] Verify admin interface works
-- [ ] Test on mobile device/viewport
-- [ ] Check browser console for errors
-- [ ] Verify Firestore data is correct
+**More Help**: See `QUICK-START.md`, `SETUP-GUIDE.md`, `ADMIN-GUIDE.md`, `TESTING-GUIDE.md`
 
 ## 📚 Additional Documentation
 
-This repository includes several focused documentation files:
+- **[QUICK-START.md](QUICK-START.md)** - Quick reference and commands
+- **[SETUP-GUIDE.md](SETUP-GUIDE.md)** - Initial setup instructions
+- **[ADMIN-GUIDE.md](ADMIN-GUIDE.md)** - Admin interface documentation
+- **[TESTING-GUIDE.md](TESTING-GUIDE.md)** - Testing mode guide
 
-- **[QUICK-START.md](QUICK-START.md)** - Quick reference for common tasks and commands
-- **[SETUP-GUIDE.md](SETUP-GUIDE.md)** - Detailed initial setup instructions
-- **[ADMIN-GUIDE.md](ADMIN-GUIDE.md)** - Complete admin interface documentation
-- **[TESTING-GUIDE.md](TESTING-GUIDE.md)** - In-depth testing mode guide
-
-### External Resources
-
-- [Quasar Framework Documentation](https://quasar.dev/)
-- [Vue 3 Documentation](https://vuejs.org/)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [TypeScript Documentation](https://www.typescriptlang.org/)
-- [Vite Documentation](https://vitejs.dev/)
-
-## 📄 License
-
-This project is private and intended for family use.
-
-## 👤 Author
-
-**Jeffrey Thomas**
-
-- Email: jeffreykthomas@gmail.com
+**External**: [Quasar](https://quasar.dev/) • [Vue 3](https://vuejs.org/) • [Firebase](https://firebase.google.com/docs) • [TypeScript](https://www.typescriptlang.org/)
 
 ---
 
-## 🎄 Happy Secret Santa! 🎅
-
-Need help? Check the documentation files or open an issue in the repository.
+**Author**: Jeffrey Thomas (jeffreykthomas@gmail.com) • **License**: Private/Family Use
