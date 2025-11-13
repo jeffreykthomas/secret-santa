@@ -140,6 +140,15 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
           <q-btn
+            label="Assign All Santas"
+            icon="autorenew"
+            unelevated
+            color="positive"
+            @click="assignAllSantas"
+            :disable="familyMembers.length === 0"
+            class="action-btn"
+          />
+          <q-btn
             label="Reset Assignments"
             icon="refresh"
             outline
@@ -217,7 +226,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { db, collection, doc, getDoc, setDoc } from 'src/boot/firebase';
+import {
+  db,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from 'src/boot/firebase';
 import { FamilyMember } from 'src/components/models';
 import { useQuasar, QScrollArea } from 'quasar';
 import {
@@ -227,6 +243,17 @@ import {
   configurations,
   isTestingMode,
 } from 'src/boot/config';
+
+interface SantaListEntry {
+  couple: number;
+  assigned: boolean;
+  text: string;
+  value: string;
+  hasSanta: boolean;
+  santaFor: string;
+}
+
+type PastAssignments = Record<string, string[]>;
 
 defineOptions({
   name: 'AdminPage',
@@ -328,7 +355,17 @@ const writeSantaData = async (members: FamilyMember[]) => {
     return acc;
   }, {} as Record<string, FamilyMember>);
 
-  await setDoc(santaRef, { familyMembers: familyMembersMap }, { merge: true });
+  // Check if document exists
+  const docSnap = await getDoc(santaRef);
+
+  if (docSnap.exists()) {
+    // Use updateDoc to replace only the familyMembers field
+    // This ensures deleted members are removed while preserving other document fields
+    await updateDoc(santaRef, { familyMembers: familyMembersMap });
+  } else {
+    // Document doesn't exist yet, create it with setDoc
+    await setDoc(santaRef, { familyMembers: familyMembersMap });
+  }
 };
 
 const addCouple = async () => {
@@ -505,6 +542,170 @@ const resetAssignments = () => {
       message: 'All assignments reset',
       position: 'top',
     });
+  });
+};
+
+const fetchPastAssignments = async (): Promise<PastAssignments> => {
+  const pastAssignments: PastAssignments = {};
+  const years = ['2020', '2021', '2022', '2023'];
+
+  for (const year of years) {
+    const santaRef = doc(
+      collection(db, activeConfig.value.collectionName),
+      year
+    );
+    const docSnap = await getDoc(santaRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (data.santaLists) {
+        (data.santaLists as SantaListEntry[]).forEach((entry) => {
+          if (!pastAssignments[entry.text]) {
+            pastAssignments[entry.text] = [];
+          }
+          pastAssignments[entry.text].push(entry.santaFor);
+        });
+      }
+    }
+  }
+  return pastAssignments;
+};
+
+const assignAllSantas = async () => {
+  if (familyMembers.value.length === 0) {
+    $q.notify({
+      type: 'negative',
+      message: 'No family members to assign',
+      position: 'top',
+    });
+    return;
+  }
+
+  $q.dialog({
+    title: 'Assign All Santas',
+    message:
+      'This will automatically assign Secret Santa matches for all family members. Continue?',
+    cancel: {
+      label: 'Cancel',
+      flat: true,
+      color: 'grey-7',
+    },
+    ok: {
+      label: 'Assign All',
+      color: 'positive',
+      unelevated: true,
+    },
+    persistent: true,
+    class: 'modern-dialog',
+  }).onOk(async () => {
+    $q.loading.show({ message: 'Assigning santas...' });
+
+    try {
+      const pastAssignments = await fetchPastAssignments();
+      const gifteesPerSanta = activeConfig.value.gifteesPerSanta;
+
+      // Count how many times each person has been assigned as a giftee
+      const assignmentCounts: Record<string, number> = {};
+      familyMembers.value.forEach((member) => {
+        assignmentCounts[member.name] = 0;
+      });
+
+      // Create a copy to work with
+      const members = [...familyMembers.value];
+
+      // Shuffle members for random processing order
+      for (let i = members.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [members[i], members[j]] = [members[j], members[i]];
+      }
+
+      // Assign santas for each member
+      for (const member of members) {
+        if (member.assigned) continue; // Skip if already assigned
+
+        // Filter members who haven't been assigned the maximum number of times yet
+        let potentialGiftees = familyMembers.value
+          .filter(
+            (m) =>
+              m.name !== member.name &&
+              (assignmentCounts[m.name] || 0) < gifteesPerSanta
+          )
+          .slice();
+
+        // Shuffle potential giftees
+        for (let i = potentialGiftees.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [potentialGiftees[i], potentialGiftees[j]] = [
+            potentialGiftees[j],
+            potentialGiftees[i],
+          ];
+        }
+
+        // Prefer new pairings and avoid pairing with partners
+        potentialGiftees.sort((a, b) => {
+          const aPastPairings =
+            pastAssignments[member.name]?.filter((name) => name === a.name)
+              .length || 0;
+          const bPastPairings =
+            pastAssignments[member.name]?.filter((name) => name === b.name)
+              .length || 0;
+
+          const aIsPartner = a.name === member.partner ? 1 : 0;
+          const bIsPartner = b.name === member.partner ? 1 : 0;
+
+          return aPastPairings - bPastPairings || aIsPartner - bIsPartner;
+        });
+
+        // Select the configured number of giftees
+        const selectedGiftees = potentialGiftees.slice(0, gifteesPerSanta);
+        if (selectedGiftees.length < gifteesPerSanta) {
+          $q.loading.hide();
+          $q.notify({
+            type: 'negative',
+            message: `Not enough people to assign ${gifteesPerSanta} giftee(s) for ${member.name}`,
+            position: 'top',
+          });
+          return;
+        }
+
+        const selectedNames = selectedGiftees.map((g) => g.name);
+
+        // Find the member in the original array and update
+        const memberIndex = familyMembers.value.findIndex(
+          (m) => m.name === member.name
+        );
+        familyMembers.value[memberIndex].assigned = true;
+        familyMembers.value[memberIndex].santaFor =
+          gifteesPerSanta === 1 ? selectedNames[0] : selectedNames;
+
+        // Update assignment counts
+        selectedGiftees.forEach((giftee) => {
+          assignmentCounts[giftee.name]++;
+          const gifteeIndex = familyMembers.value.findIndex(
+            (m) => m.name === giftee.name
+          );
+          familyMembers.value[gifteeIndex].hasSanta =
+            assignmentCounts[giftee.name] >= gifteesPerSanta;
+        });
+      }
+
+      await writeSantaData(familyMembers.value);
+
+      $q.loading.hide();
+      $q.notify({
+        type: 'positive',
+        message: 'All santas assigned successfully!',
+        position: 'top',
+      });
+
+      scrollToMembers();
+    } catch (error) {
+      $q.loading.hide();
+      $q.notify({
+        type: 'negative',
+        message: 'Error assigning santas: ' + error,
+        position: 'top',
+      });
+    }
   });
 };
 

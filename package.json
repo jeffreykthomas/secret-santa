@@ -2,7 +2,7 @@
   "name": "secret-santa",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "Secret Santa (overridden by config at build time)",
+  "productName": "Secret Santa",
   "author": "jeffreythomas <jeffreykthomas@gmail.com>",
   "private": true,
   "scripts": {

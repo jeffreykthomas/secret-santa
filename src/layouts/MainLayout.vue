@@ -16,9 +16,15 @@
 
 <script setup lang="ts">
 import { activeConfig } from 'src/boot/config';
+import { watchEffect } from 'vue';
 
 defineOptions({
   name: 'MainLayout',
+});
+
+// Dynamically update document title based on active config
+watchEffect(() => {
+  document.title = activeConfig.value.appTitle;
 });
 </script>
 

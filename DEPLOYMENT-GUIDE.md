@@ -13,6 +13,7 @@ This project has **two separate configurations** that deploy to **two different 
 
 ### Production Builds
 - **Config Toggle Hidden**: In production builds, the configuration switcher in the Admin page is automatically hidden because only one config is compiled into each build.
+- **Dynamic Browser Title**: The browser tab title is dynamically set to match each configuration (e.g., "Thomas Family Secret Santa" or "Leinert Family Secret Santa") via JavaScript when the app loads.
 - **Separate Data**: Each configuration uses a different Firestore collection:
   - Thomas Family: `santas`
   - Leinert Family: `leinert-santas`

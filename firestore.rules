@@ -11,11 +11,10 @@ service cloud.firestore {
     // Helper function to check if this is a valid participant update
     function isValidParticipantUpdate() {
       // Must have familyMembers
-      return hasValidStructure() &&
-             // Can't delete members (keys must match or grow)
-             resource.data.familyMembers.keys().toSet()
-               .difference(request.resource.data.familyMembers.keys().toSet())
-               .size() == 0;
+      return hasValidStructure();
+      // Note: Members can be added, updated, or deleted
+      // In production, you may want to add admin secret verification
+      // to restrict who can delete members
     }
 
     // Match any collection that could be used for Secret Santa events
