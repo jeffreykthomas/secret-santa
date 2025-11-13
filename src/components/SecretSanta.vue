@@ -305,8 +305,31 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
     $q.loading.hide();
   } else {
     const pastAssignments = await fetchPastAssignments();
+
+    // Count how many times each person has been assigned as a giftee
+    const assignmentCounts: Record<string, number> = {};
+    familyMembers.value.forEach((member) => {
+      assignmentCounts[member.name] = 0;
+    });
+
+    familyMembers.value.forEach((member) => {
+      if (member.assigned && member.santaFor) {
+        const santaForArray = Array.isArray(member.santaFor)
+          ? member.santaFor
+          : [member.santaFor];
+        santaForArray.forEach((name) => {
+          assignmentCounts[name] = (assignmentCounts[name] || 0) + 1;
+        });
+      }
+    });
+
+    // Filter members who haven't been assigned the maximum number of times yet
     let newArray = familyMembers.value
-      .filter((member) => !member.hasSanta && member.name !== familyMember.name)
+      .filter(
+        (member) =>
+          member.name !== familyMember.name &&
+          (assignmentCounts[member.name] || 0) < gifteesPerSanta.value
+      )
       .slice();
 
     // Shuffle the array to randomize selection
@@ -345,11 +368,14 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
       gifteesPerSanta.value === 1 ? selectedNames[0] : selectedNames;
 
     // Mark all selected giftees as having a santa
+    // Update hasSanta based on whether they've reached the max assignment count
     selectedGiftees.forEach((giftee) => {
       let gifteeIndex = familyMembers.value.findIndex(
         (member: FamilyMember) => member.name === giftee.name
       );
-      familyMembers.value[gifteeIndex].hasSanta = true;
+      assignmentCounts[giftee.name]++;
+      familyMembers.value[gifteeIndex].hasSanta =
+        assignmentCounts[giftee.name] >= gifteesPerSanta.value;
     });
 
     var docData = familyMembers.value;

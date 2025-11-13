@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "secret-santa-e3f0f"
-  }
+  },
+  "targets": {
+    "secret-santa-e3f0f": {
+      "hosting": {
+        "default": [
+          "secret-santa-e3f0f"
+        ],
+        "version2": [
+          "secret-santa-leinert"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

@@ -307,12 +307,14 @@ firebase hosting:releases:list      # View history
 ✅ **Structure Validation**: All writes must maintain proper data format
 
 **Security Model**:
+
 - Reads are open (necessary for participants to see gift ideas)
 - Writes are validated (can't delete members or corrupt data structure)
 - Firebase API keys in environment variables
 - No authentication required for participants (by design for ease of use)
 
 **Important Notes**:
+
 - Firebase web API keys are designed to be public and visible in browser requests
 - Real security comes from Firestore rules, not hidden API keys
 - Domain restrictions can be added for production use
@@ -320,6 +322,7 @@ firebase hosting:releases:list      # View history
 **For Enhanced Security**:
 
 See **[SECURITY-GUIDE.md](./SECURITY-GUIDE.md)** for detailed security options including:
+
 - 🔐 Firebase App Check (recommended)
 - 🌐 Domain restrictions
 - 🔑 Admin secret keys
@@ -328,9 +331,10 @@ See **[SECURITY-GUIDE.md](./SECURITY-GUIDE.md)** for detailed security options i
 
 **Git History Note**:
 
-If you previously committed Firebase credentials and want to remove them from git history, see **[SECURITY-SCRUB-GUIDE.md](./SECURITY-SCRUB-GUIDE.md)**. 
+If you previously committed Firebase credentials and want to remove them from git history, see **[SECURITY-SCRUB-GUIDE.md](./SECURITY-SCRUB-GUIDE.md)**.
 
 However, for Firebase web apps, this is typically **not necessary** since:
+
 - Firebase API keys are designed to be public
 - Security is enforced by Firestore rules
 - Keys are visible in browser network requests anyway
