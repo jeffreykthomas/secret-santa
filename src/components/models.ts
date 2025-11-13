@@ -1,8 +1,14 @@
-export interface Todo {
-  id: number;
-  content: string;
-}
+export type FamilyMember = {
+  name: string;
+  label: string;
+  value: number;
+  partner?: string;
+  assigned: boolean;
+  hasSanta: boolean;
+  santaFor: string;
+  giftIdeas: GiftIdea[];
+};
 
-export interface Meta {
-  totalCount: number;
-}
+export type GiftIdea = {
+  idea: string;
+};
