@@ -21,14 +21,14 @@ import {
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyCRw9sh1OmWJTL_b2HDeQXEbBDSpsz9F_w',
-  authDomain: 'secret-santa-e3f0f.firebaseapp.com',
-  databaseURL: 'https://secret-santa-e3f0f.firebaseio.com',
-  projectId: 'secret-santa-e3f0f',
-  storageBucket: 'secret-santa-e3f0f.appspot.com',
-  messagingSenderId: '1050830077055',
-  appId: '1:1050830077055:web:ddf62bc6fe809d3b09534a',
-  measurementId: 'G-2JEGNHVQ8B',
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
 };
 // Initialize Firebase
 // Initialize Firebase

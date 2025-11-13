@@ -12,14 +12,15 @@
 // to match your app's branding.
 // Tip: Use the "Theme Builder" on Quasar's documentation website.
 
-$primary   : #1976D2;
-$secondary : #26A69A;
-$accent    : #9C27B0;
+// Modern Holiday Blue Color Palette
+$primary: #2563eb; // Holiday blue
+$secondary: #1e40af; // Deeper blue
+$accent: #60a5fa; // Light accent blue
 
-$dark      : #1D1D1D;
-$dark-page : #121212;
+$dark: #1d1d1d;
+$dark-page: #121212;
 
-$positive  : #21BA45;
-$negative  : #C10015;
-$info      : #31CCEC;
-$warning   : #F2C037;
+$positive: #10b981; // Success green
+$negative: #ef4444; // Error red
+$info: #3b82f6; // Info blue
+$warning: #f59e0b; // Warning amber

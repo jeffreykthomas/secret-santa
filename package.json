@@ -10,7 +10,12 @@
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
-    "build": "quasar build"
+    "dev:v2": "VERSION=version2 quasar dev",
+    "build": "quasar build",
+    "build:default": "VERSION=default quasar build",
+    "build:v2": "VERSION=version2 quasar build",
+    "deploy:default": "VERSION=default yarn build && firebase deploy --only hosting:default",
+    "deploy:v2": "VERSION=version2 yarn build && firebase deploy --only hosting:version2"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",

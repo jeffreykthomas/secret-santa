@@ -9,8 +9,23 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
 const { configure } = require('quasar/wrappers');
+const path = require('path');
+const fs = require('fs');
 
 module.exports = configure(function (/* ctx */) {
+  // Load configuration based on VERSION env variable
+  const version = process.env.VERSION || 'default';
+  const configPath = path.resolve(__dirname, `config.${version}.js`);
+
+  let config;
+  if (fs.existsSync(configPath)) {
+    config = require(configPath);
+    console.log(`\n🎅 Loading configuration: ${version}\n`);
+  } else {
+    console.warn(`Configuration file not found: ${configPath}, using default`);
+    config = require('./config.default.js');
+  }
+
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -18,7 +33,7 @@ module.exports = configure(function (/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['firebase'],
+    boot: ['firebase', 'register-configs'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
@@ -53,7 +68,19 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      env: {
+        APP_TITLE: config.appTitle,
+        GIFTEES_PER_SANTA: config.gifteesPerSanta,
+        COLLECTION_NAME: config.collectionName,
+        FIREBASE_API_KEY: config.firebase.apiKey,
+        FIREBASE_AUTH_DOMAIN: config.firebase.authDomain,
+        FIREBASE_DATABASE_URL: config.firebase.databaseURL,
+        FIREBASE_PROJECT_ID: config.firebase.projectId,
+        FIREBASE_STORAGE_BUCKET: config.firebase.storageBucket,
+        FIREBASE_MESSAGING_SENDER_ID: config.firebase.messagingSenderId,
+        FIREBASE_APP_ID: config.firebase.appId,
+        FIREBASE_MEASUREMENT_ID: config.firebase.measurementId,
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       // minify: false,
@@ -101,7 +128,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['Dialog', 'Loading'],
+      plugins: ['Dialog', 'Loading', 'Notify'],
     },
 
     // animations: 'all', // --- includes all animations

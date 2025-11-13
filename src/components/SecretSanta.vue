@@ -1,111 +1,170 @@
 <template>
   <div class="full-width">
-    <div class="row justify-center q-pt-md">
-      <div class="col-12 col-sm-6 col-md-3 q-mx-auto">
-        <q-img :src="SantaImage" alt="Santa" />
-      </div>
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Secret Santa</h1>
+      <p class="page-subtitle">Find out who you're gifting to this year!</p>
     </div>
-    <div class="row" v-show="!confirmed">
-      <div class="col-12 col-sm-6 col-md-3 q-mx-auto q-py-sm q-px-lg">
-        <q-select
-          class="mx-auto h3 text-danger"
-          :options="familyMembers"
-          v-model="yourName"
-          behavior="menu"
-          label="What's your name?"
-          @update:model-value="onNameSelected"
+
+    <!-- Santa Image -->
+    <div class="santa-image-container">
+      <q-img :src="SantaImage" alt="Santa" class="santa-image" />
+    </div>
+
+    <!-- No Family Members Message -->
+    <div v-if="familyMembers.length === 0 && !loading" class="content-section">
+      <div class="empty-state-card">
+        <q-icon name="people_outline" size="64px" color="grey-5" />
+        <h3 class="empty-title">No Family Members Yet</h3>
+        <p class="empty-text">
+          Add family members to get started with Secret Santa
+        </p>
+        <q-btn
+          unelevated
+          color="primary"
+          label="Set Up Admin"
+          icon="settings"
+          :to="adminLink"
+          class="empty-btn"
         />
       </div>
     </div>
-    <div class="row justify-center q-pt-none" v-show="confirmed">
-      <div class="col-12 col-lg-6 text-center">
-        <h4 class="text-weight-bold text-h5 q-mb-none">
-          You are the Secret Santa for:
-        </h4>
-        <h3
-          class="text-negative font-weight-bold text-italic q-my-none"
-          v-show="confirmed"
+
+    <!-- Name Selection -->
+    <div
+      v-show="!confirmed && familyMembers.length > 0"
+      class="content-section"
+    >
+      <div class="select-card">
+        <h3 class="select-title">Who are you?</h3>
+        <q-select
+          :options="familyMembers"
+          v-model="yourName"
+          behavior="menu"
+          outlined
+          @update:model-value="onNameSelected"
+          class="modern-select"
+        />
+      </div>
+    </div>
+    <!-- Secret Santa Reveal -->
+    <div v-show="confirmed" class="content-section">
+      <div class="reveal-card">
+        <h4 class="reveal-title">You are the Secret Santa for:</h4>
+        <div
+          class="santa-name"
+          v-for="(santa, index) in yourSantas"
+          :key="index"
         >
-          {{ yourSanta }}
-        </h3>
+          {{ santa }}
+        </div>
       </div>
     </div>
 
+    <!-- Gift Ideas Sections -->
     <div v-show="confirmed">
-      <!-- Ideas for the giftee -->
-      <div>
-        <p
-          class="text-center text-negative q-mt-md text-weight-bold text-h5 q-pb-lg"
-          v-if="
-            yourSantaObject?.giftIdeas && yourSantaObject?.giftIdeas.length > 0
-          "
-        >
-          Ideas for
-          {{ yourSanta }}
-        </p>
-        <p
-          v-else
-          class="text-center text-dark text-italic q-mt-md text-weight-bold text-h5 q-pb-lg"
-        >
-          {{ yourSanta }} has no gift ideas yet.
-        </p>
-        <div
-          class="row justify-center text-left q-px-md q-px-md-none"
-          v-for="(gift, index) in yourSantaObject?.giftIdeas"
-          :key="index"
-        >
-          <div class="col-10 col-sm-4 col-md-5 q-px-none">
-            <p
-              class="text-h5 text-weight-bold text-primary text-capitalize q-ml-sm q-mb-sm q-mt-none"
-              v-html="formatGiftIdea(gift.idea, index)"
-            ></p>
+      <!-- Ideas for the giftees -->
+      <div
+        v-for="(santaObject, gifteeIndex) in yourSantaObjects"
+        :key="gifteeIndex"
+        class="content-section"
+      >
+        <div class="gift-ideas-card">
+          <h3 class="section-title">
+            <q-icon
+              name="card_giftcard"
+              size="24px"
+              class="q-mr-sm"
+              color="negative"
+            />
+            <span
+              v-if="santaObject?.giftIdeas && santaObject?.giftIdeas.length > 0"
+            >
+              Ideas for {{ santaObject.name }}
+            </span>
+            <span v-else class="no-ideas-text">
+              {{ santaObject?.name }} has no gift ideas yet
+            </span>
+          </h3>
+
+          <div
+            v-if="santaObject?.giftIdeas && santaObject?.giftIdeas.length > 0"
+            class="ideas-list"
+          >
+            <div
+              v-for="(gift, index) in santaObject?.giftIdeas"
+              :key="index"
+              class="idea-item"
+            >
+              <span
+                class="idea-text"
+                v-html="formatGiftIdea(gift.idea, index)"
+              ></span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Ideas for the yourself -->
-      <div>
-        <p
-          class="text-center text-negative q-mt-lg text-weight-bold text-h5 q-pb-lg"
-        >
-          Add ideas for
-          {{ yourName?.name }}
-        </p>
-        <div
-          class="row justify-center text-left q-px-md q-px-md-none"
-          v-for="(gift, index) in yourName?.giftIdeas"
-          :key="index"
-        >
-          <div class="col-10 col-sm-4 col-md-5 q-px-none">
-            <p
-              class="text-h5 text-weight-bold text-primary text-capitalize q-ml-sm q-mb-sm q-mt-none"
-              v-html="formatGiftIdea(gift.idea, index)"
-            ></p>
-          </div>
-          <div class="col-2 q-my-auto">
+      <!-- Ideas for yourself -->
+      <div class="content-section">
+        <div class="gift-ideas-card your-ideas">
+          <h3 class="section-title">
             <q-icon
-              name="delete"
-              class="text-negative pointer float-right q-mr-sm"
-              size="xs"
-              @click="deleteGiftIdea(yourName, index)"
+              name="lightbulb"
+              size="24px"
+              class="q-mr-sm"
+              color="negative"
             />
+            Your Gift Ideas
+          </h3>
+          <p class="section-subtitle">Add ideas for {{ yourName?.name }}</p>
+
+          <div
+            v-if="yourName?.giftIdeas && yourName.giftIdeas.length > 0"
+            class="ideas-list"
+          >
+            <div
+              v-for="(gift, index) in yourName?.giftIdeas"
+              :key="index"
+              class="idea-item"
+            >
+              <span
+                class="idea-text"
+                v-html="formatGiftIdea(gift.idea, index)"
+              ></span>
+              <q-btn
+                icon="delete"
+                flat
+                round
+                dense
+                size="sm"
+                color="negative"
+                @click="deleteGiftIdea(yourName, index)"
+                class="delete-btn"
+              >
+                <q-tooltip>Delete</q-tooltip>
+              </q-btn>
+            </div>
           </div>
-        </div>
-        <div class="row q-px-md q-px-md-none justify-center">
-          <div class="col-12 col-sm-6 col-md-7 q-pb-lg">
+
+          <div class="add-idea-section">
             <q-input
-              class="q-ma-none q-pt-sm"
-              placeholder="Add Gift Idea"
-              standout
-              type="text"
               v-model="newGiftIdea"
+              placeholder="Add a gift idea..."
+              outlined
+              dense
+              class="idea-input"
+              @keyup.enter="addGiftIdea(yourName, { idea: newGiftIdea })"
             >
               <template v-slot:append>
-                <q-icon
-                  name="add_circle_outline"
-                  class="text-primary pointer"
-                  size="sm"
+                <q-btn
+                  icon="add_circle"
+                  flat
+                  round
+                  dense
+                  color="primary"
                   @click="addGiftIdea(yourName, { idea: newGiftIdea })"
+                  :disable="!newGiftIdea.trim()"
                 />
               </template>
             </q-input>
@@ -117,120 +176,34 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { db, collection, setDoc, doc, getDoc } from 'src/boot/firebase';
 import { FamilyMember, GiftIdea } from 'src/components/models';
 import { useQuasar } from 'quasar';
 import ConfirmDialog from 'src/components/ConfirmDialog.vue';
 import SantaImage from 'src/assets/santa.jpeg';
+import { activeConfig, activeConfigVersion } from 'src/boot/config';
 
 const $q = useQuasar();
 
-const familyMembers = ref<FamilyMember[]>([
-  {
-    name: 'Frank',
-    label: 'Frank',
-    value: 1,
-    partner: 'Eva',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Eva',
-    label: 'Eva',
-    value: 2,
-    partner: 'Frank',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Cayden',
-    label: 'Cayden',
-    value: 3,
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Joan',
-    label: 'Joan',
-    value: 4,
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Chris',
-    label: 'Chris',
-    value: 5,
-    partner: 'Jill',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Jill',
-    label: 'Jill',
-    value: 6,
-    partner: 'Chris',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Brian',
-    label: 'Brian',
-    value: 7,
-    partner: 'Megan',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Megan',
-    label: 'Megan',
-    value: 8,
-    partner: 'Brian',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Jeff',
-    label: 'Jeff',
-    value: 9,
-    partner: 'Shannon',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-  {
-    name: 'Shannon',
-    label: 'Shannon',
-    value: 10,
-    partner: 'Jeff',
-    assigned: false,
-    hasSanta: false,
-    santaFor: '',
-    giftIdeas: [],
-  },
-]);
-const yourSanta = ref('');
-const yourSantaObject = ref<FamilyMember | undefined>();
+const gifteesPerSanta = computed(() => activeConfig.value.gifteesPerSanta);
+const collectionName = computed(() => activeConfig.value.collectionName);
+
+const adminLink = computed(() => {
+  if (activeConfigVersion.value === 'default') {
+    return '/admin';
+  }
+  return `/admin?version=${activeConfigVersion.value}`;
+});
+
+// Family members will be loaded from Firestore (managed via admin UI)
+const familyMembers = ref<FamilyMember[]>([]);
+const yourSantas = ref<string[]>([]);
+const yourSantaObjects = ref<FamilyMember[]>([]);
 const yourName = ref<FamilyMember | undefined>();
 const confirmed = ref(false);
 const newGiftIdea = ref('');
+const loading = ref(true);
 
 const formatGiftIdea = (idea: string, index: number) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -242,12 +215,20 @@ const formatGiftIdea = (idea: string, index: number) => {
 // ... existing code ...
 
 const writeSantaData = async (familyMembers: FamilyMember[]) => {
-  const santaRef = doc(collection(db, 'santas'), '2024');
+  const santaRef = doc(collection(db, collectionName.value), '2024');
 
   const familyMembersMap = familyMembers.reduce((acc, member) => {
-    acc[member.name] = member; // Use member.name or another unique identifier
+    // Clean up the member object to remove undefined values
+    const cleanMember: Partial<FamilyMember> = {};
+    Object.keys(member).forEach((key) => {
+      const value = member[key as keyof FamilyMember];
+      if (value !== undefined) {
+        cleanMember[key as keyof FamilyMember] = value as never;
+      }
+    });
+    acc[member.name] = cleanMember;
     return acc;
-  }, {} as Record<string, FamilyMember>);
+  }, {} as Record<string, Partial<FamilyMember>>);
 
   await setDoc(santaRef, { familyMembers: familyMembersMap }, { merge: true });
 };
@@ -284,7 +265,7 @@ const fetchPastAssignments = async (): Promise<PastAssignments> => {
   const years = ['2020', '2021', '2022', '2023'];
 
   for (const year of years) {
-    const santaRef = doc(collection(db, 'santas'), year);
+    const santaRef = doc(collection(db, collectionName.value), year);
     const docSnap = await getDoc(santaRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -315,10 +296,12 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
   );
 
   if (familyMembers.value[santa].assigned === true) {
-    yourSanta.value = familyMembers.value[santa].santaFor;
-    yourSantaObject.value = familyMembers.value.find(
-      (member) => member.name === yourSanta.value
-    );
+    // Handle both single and multiple giftees
+    const santaFor = familyMembers.value[santa].santaFor;
+    yourSantas.value = Array.isArray(santaFor) ? santaFor : [santaFor];
+    yourSantaObjects.value = yourSantas.value
+      .map((name) => familyMembers.value.find((member) => member.name === name))
+      .filter((obj): obj is FamilyMember => obj !== undefined);
     $q.loading.hide();
   } else {
     const pastAssignments = await fetchPastAssignments();
@@ -349,16 +332,25 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
       return aPastPairings - bPastPairings || aIsPartner - bIsPartner;
     });
 
-    yourSanta.value = newArray[0].name;
-    console.log('yourSanta', yourSanta.value);
+    // Select the configured number of giftees
+    const selectedGiftees = newArray.slice(0, gifteesPerSanta.value);
+    const selectedNames = selectedGiftees.map((g) => g.name);
+
+    yourSantas.value = selectedNames;
+    yourSantaObjects.value = selectedGiftees;
+    console.log('yourSantas', yourSantas.value);
 
     familyMembers.value[santa].assigned = true;
-    familyMembers.value[santa].santaFor = newArray[0].name;
+    familyMembers.value[santa].santaFor =
+      gifteesPerSanta.value === 1 ? selectedNames[0] : selectedNames;
 
-    let newGiftee = familyMembers.value.findIndex(
-      (member: FamilyMember) => member.name === newArray[0].name
-    );
-    familyMembers.value[newGiftee].hasSanta = true;
+    // Mark all selected giftees as having a santa
+    selectedGiftees.forEach((giftee) => {
+      let gifteeIndex = familyMembers.value.findIndex(
+        (member: FamilyMember) => member.name === giftee.name
+      );
+      familyMembers.value[gifteeIndex].hasSanta = true;
+    });
 
     var docData = familyMembers.value;
     console.log(docData);
@@ -399,7 +391,8 @@ const deleteGiftIdea = async (
 };
 
 onMounted(async () => {
-  const santaRef = doc(collection(db, 'santas'), '2024');
+  loading.value = true;
+  const santaRef = doc(collection(db, collectionName.value), '2024');
   const docSnap = await getDoc(santaRef);
 
   if (docSnap.exists()) {
@@ -409,41 +402,214 @@ onMounted(async () => {
       console.log('data', data);
     }
   }
+  loading.value = false;
 });
 </script>
-<style>
-h3 {
-  font-weight: normal;
-  padding-top: 20px;
-  padding-bottom: 30px;
+<style scoped>
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
-p {
-  color: #969696;
-  margin-bottom: 0;
-  font-size: 14px;
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
 }
-.dropdown-content li > a,
-.dropdown-content li > span {
-  font-size: 1.2rem;
-  color: #0e3d67;
-  font-weight: 300;
+
+.page-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.santa-image-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.santa-image {
+  max-width: 300px;
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.content-section {
+  margin-bottom: 2rem;
+}
+
+.empty-state-card {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.empty-text {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.empty-btn {
+  padding: 0.5rem 2rem;
+  font-weight: 500;
+}
+
+.select-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.select-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.5rem 0;
   text-align: center;
 }
-.caret-style {
-  font-size: 0.6em !important;
-  padding-top: 5px;
-  color: #ba180f !important;
+
+.modern-select {
+  font-size: 1.1rem;
 }
 
-.line-height-increase {
-  line-height: 2em;
+.reveal-card {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #60a5fa;
 }
 
-.capitalize-text {
-  text-transform: capitalize;
+.reveal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin: 0 0 1rem 0;
+}
+
+.santa-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e40af;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.gift-ideas-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.gift-ideas-card.your-ideas {
+  border: 2px solid #2563eb;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.section-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+}
+
+.no-ideas-text {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.idea-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.idea-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.idea-text {
+  flex: 1;
+  font-size: 1rem;
+  color: #1a1a1a;
+  word-break: break-word;
+}
+
+.idea-text :deep(a) {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.delete-btn {
+  margin-left: 0.5rem;
+}
+
+.add-idea-section {
+  margin-top: 1rem;
+}
+
+.idea-input {
+  font-size: 1rem;
 }
 
 .pointer {
   cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  .santa-name {
+    font-size: 1.75rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  .santa-image {
+    max-width: 250px;
+  }
 }
 </style>

@@ -1,1 +1,113 @@
 // app global css in SCSS form
+
+// Modern Christmas Theme
+body {
+  background: linear-gradient(to bottom, #e6f2ff 0%, #f9fafb 100%);
+  min-height: 100vh;
+}
+
+// Add subtle festive accents
+.q-page {
+  background: transparent;
+}
+
+// Christmas-themed scrollbar (for webkit browsers)
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2b6cb0 0%, #1e4db3 100%);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #1e4db3 0%, #1a3a8f 100%);
+}
+
+// Modern Dialog Styles
+.modern-dialog {
+  .q-card {
+    border-radius: 12px;
+    min-width: 400px;
+    max-width: 500px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .q-dialog__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    padding: 1.5rem 1.5rem 1rem;
+  }
+
+  .q-dialog__message {
+    font-size: 1rem;
+    color: #4b5563;
+    line-height: 1.6;
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  .q-card__actions {
+    padding: 1rem 1.5rem 1.5rem;
+    gap: 0.5rem;
+  }
+
+  .q-btn {
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 500px) {
+  .modern-dialog .q-card {
+    min-width: unset;
+    width: 90vw;
+  }
+
+  .modern-dialog .q-dialog__title {
+    font-size: 1.25rem;
+  }
+
+  .modern-dialog .q-dialog__message {
+    font-size: 0.95rem;
+  }
+}
+
+// Select dropdown menu styling
+.q-menu {
+  .q-item {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    color: #1a1a1a;
+    font-size: 1rem;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+
+    &.q-manual-focusable--focused {
+      background: #dbeafe;
+    }
+  }
+
+  .q-item__label {
+    color: #1a1a1a;
+  }
+}
+
+// Ensure select options are visible
+.q-select {
+  .q-field__native,
+  .q-field__input {
+    color: #1a1a1a;
+  }
+}

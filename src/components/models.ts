@@ -5,7 +5,7 @@ export type FamilyMember = {
   partner?: string;
   assigned: boolean;
   hasSanta: boolean;
-  santaFor: string;
+  santaFor: string | string[]; // Support both single and multiple giftees
   giftIdeas: GiftIdea[];
 };
 
