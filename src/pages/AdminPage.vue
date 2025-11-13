@@ -1,154 +1,163 @@
 <template>
   <q-page class="modern-admin-page">
-    <div class="page-container">
-      <!-- Header -->
-      <div class="page-header">
-        <h1 class="page-title">Family Members</h1>
-        <p class="page-subtitle">Manage your Secret Santa participants</p>
-      </div>
-
-      <!-- Collection Info -->
-      <div class="info-card">
-        <div class="info-content">
-          <q-icon name="info_outline" size="20px" class="info-icon" />
-          <span class="info-text"
-            >Collection: <code>{{ activeConfig.collectionName }}</code></span
-          >
+    <q-scroll-area
+      ref="scrollAreaRef"
+      class="full-height"
+      :thumb-style="thumbStyle"
+      :bar-style="barStyle"
+    >
+      <div class="page-container">
+        <!-- Header -->
+        <div class="page-header">
+          <h1 class="page-title">Family Members</h1>
+          <p class="page-subtitle">Manage your Secret Santa participants</p>
         </div>
-      </div>
 
-      <!-- Configuration Switcher (Testing Mode) -->
-      <div v-if="isTestingMode()" class="config-switcher">
-        <div class="switcher-header">
-          <q-icon name="science" size="20px" />
-          <span class="switcher-title">Testing Mode</span>
+        <!-- Collection Info -->
+        <div class="info-card">
+          <div class="info-content">
+            <q-icon name="info_outline" size="20px" class="info-icon" />
+            <span class="info-text"
+              >Collection: <code>{{ activeConfig.collectionName }}</code></span
+            >
+          </div>
         </div>
-        <q-btn-toggle
-          v-model="currentConfig"
-          toggle-color="primary"
-          :options="configOptions"
-          @update:model-value="onConfigChange"
-          class="modern-toggle"
-          unelevated
-        />
-        <div class="switcher-info">
-          <strong>{{ activeConfig.appTitle }}</strong> •
-          {{ activeConfig.gifteesPerSanta }} giftee{{
-            activeConfig.gifteesPerSanta > 1 ? 's' : ''
-          }}
-        </div>
-      </div>
 
-      <!-- Add Couple Section -->
-      <div class="add-member-card">
-        <h2 class="section-title">Add Couple / Person</h2>
-        <div class="form-grid">
-          <q-input
-            v-model="newCouple.person1"
-            label="Person 1"
-            outlined
-            dense
-            class="modern-input"
+        <!-- Configuration Switcher (Testing Mode) -->
+        <div v-if="isTestingMode()" class="config-switcher">
+          <div class="switcher-header">
+            <q-icon name="science" size="20px" />
+            <span class="switcher-title">Testing Mode</span>
+          </div>
+          <q-btn-toggle
+            v-model="currentConfig"
+            toggle-color="primary"
+            :options="configOptions"
+            @update:model-value="onConfigChange"
+            class="modern-toggle"
+            unelevated
+            spread
+            no-caps
           />
-          <q-input
-            v-model="newCouple.person2"
-            label="Person 2 (optional)"
-            outlined
-            dense
-            class="modern-input"
+          <div class="switcher-info">
+            <strong>{{ activeConfig.appTitle }}</strong> •
+            {{ activeConfig.gifteesPerSanta }} giftee{{
+              activeConfig.gifteesPerSanta > 1 ? 's' : ''
+            }}
+          </div>
+        </div>
+
+        <!-- Add Couple Section -->
+        <div class="add-member-card">
+          <h2 class="section-title">Add Couple / Person</h2>
+          <div class="form-grid">
+            <q-input
+              v-model="newCouple.person1"
+              label="Person 1"
+              outlined
+              dense
+              class="modern-input"
+            />
+            <q-input
+              v-model="newCouple.person2"
+              label="Person 2 (optional)"
+              outlined
+              dense
+              class="modern-input"
+            />
+          </div>
+          <q-btn
+            :label="newCouple.person2 ? 'Add Couple' : 'Add Person'"
+            :icon="newCouple.person2 ? 'favorite' : 'person_add'"
+            color="primary"
+            unelevated
+            @click="addCouple"
+            :disable="!newCouple.person1"
+            class="add-btn"
           />
         </div>
-        <q-btn
-          :label="newCouple.person2 ? 'Add Couple' : 'Add Person'"
-          :icon="newCouple.person2 ? 'favorite' : 'person_add'"
-          color="primary"
-          unelevated
-          @click="addCouple"
-          :disable="!newCouple.person1"
-          class="add-btn"
-        />
-      </div>
 
-      <!-- Members List -->
-      <div class="members-section">
-        <div class="section-header">
-          <h2 class="section-title">Members ({{ familyMembers.length }})</h2>
-        </div>
+        <!-- Members List -->
+        <div ref="membersSectionRef" class="members-section">
+          <div class="section-header">
+            <h2 class="section-title">Members ({{ familyMembers.length }})</h2>
+          </div>
 
-        <div v-if="familyMembers.length === 0" class="empty-state">
-          <q-icon name="people_outline" size="48px" color="grey-5" />
-          <p>No family members yet</p>
-          <span class="empty-hint">Add your first member above</span>
-        </div>
+          <div v-if="familyMembers.length === 0" class="empty-state">
+            <q-icon name="people_outline" size="48px" color="grey-5" />
+            <p>No family members yet</p>
+            <span class="empty-hint">Add your first member above</span>
+          </div>
 
-        <div v-else class="members-grid">
-          <div
-            v-for="(member, index) in familyMembers"
-            :key="member.value"
-            class="member-card"
-          >
-            <div class="member-avatar">
-              {{ member.name.charAt(0).toUpperCase() }}
-            </div>
-            <div class="member-info">
-              <div class="member-name">{{ member.name }}</div>
-              <div v-if="member.partner" class="member-meta">
-                Partner: {{ member.partner }}
+          <div v-else class="members-grid">
+            <div
+              v-for="(member, index) in familyMembers"
+              :key="member.value"
+              class="member-card"
+            >
+              <div class="member-avatar">
+                {{ member.name.charAt(0).toUpperCase() }}
               </div>
-              <div v-if="member.santaFor" class="member-meta">
-                <span v-if="Array.isArray(member.santaFor)">
-                  Santa for: {{ member.santaFor.join(', ') }}
-                </span>
-                <span v-else> Santa for: {{ member.santaFor }} </span>
+              <div class="member-info">
+                <div class="member-name">{{ member.name }}</div>
+                <div v-if="member.partner" class="member-meta">
+                  Partner: {{ member.partner }}
+                </div>
+                <div v-if="member.santaFor" class="member-meta">
+                  <span v-if="Array.isArray(member.santaFor)">
+                    Santa for: {{ member.santaFor.join(', ') }}
+                  </span>
+                  <span v-else> Santa for: {{ member.santaFor }} </span>
+                </div>
               </div>
-            </div>
-            <div class="member-actions">
-              <q-btn
-                icon="edit"
-                flat
-                round
-                dense
-                size="sm"
-                @click="editMember(member, index)"
-              >
-                <q-tooltip>Edit</q-tooltip>
-              </q-btn>
-              <q-btn
-                icon="delete"
-                flat
-                round
-                dense
-                size="sm"
-                color="negative"
-                @click="deleteMember(member, index)"
-              >
-                <q-tooltip>Delete</q-tooltip>
-              </q-btn>
+              <div class="member-actions">
+                <q-btn
+                  icon="edit"
+                  flat
+                  round
+                  dense
+                  size="sm"
+                  @click="editMember(member, index)"
+                >
+                  <q-tooltip>Edit</q-tooltip>
+                </q-btn>
+                <q-btn
+                  icon="delete"
+                  flat
+                  round
+                  dense
+                  size="sm"
+                  color="negative"
+                  @click="deleteMember(member, index)"
+                >
+                  <q-tooltip>Delete</q-tooltip>
+                </q-btn>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Action Buttons -->
-      <div class="action-buttons">
-        <q-btn
-          label="Reset Assignments"
-          icon="refresh"
-          outline
-          color="warning"
-          @click="resetAssignments"
-          class="action-btn"
-        />
-        <q-btn
-          label="Back to App"
-          icon="home"
-          unelevated
-          color="primary"
-          :to="backToAppLink"
-          class="action-btn"
-        />
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <q-btn
+            label="Reset Assignments"
+            icon="refresh"
+            outline
+            color="warning"
+            @click="resetAssignments"
+            class="action-btn"
+          />
+          <q-btn
+            label="Back to App"
+            icon="home"
+            unelevated
+            color="primary"
+            :to="backToAppLink"
+            class="action-btn"
+          />
+        </div>
       </div>
-    </div>
+    </q-scroll-area>
 
     <!-- Edit Dialog -->
     <q-dialog v-model="showEditDialog">
@@ -207,10 +216,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { db, collection, doc, getDoc, setDoc } from 'src/boot/firebase';
 import { FamilyMember } from 'src/components/models';
-import { useQuasar } from 'quasar';
+import { useQuasar, QScrollArea } from 'quasar';
 import {
   activeConfig,
   activeConfigVersion,
@@ -225,6 +234,38 @@ defineOptions({
 
 const $q = useQuasar();
 const currentConfig = ref(activeConfigVersion.value);
+const scrollAreaRef = ref<QScrollArea | null>(null);
+const membersSectionRef = ref<HTMLElement | null>(null);
+
+const thumbStyle = {
+  right: '4px',
+  borderRadius: '5px',
+  backgroundColor: '#027be3',
+  width: '8px',
+  opacity: '0.75',
+};
+
+const barStyle = {
+  right: '2px',
+  borderRadius: '9px',
+  backgroundColor: '#027be3',
+  width: '12px',
+  opacity: '0.2',
+};
+
+const scrollToTop = () => {
+  if (scrollAreaRef.value) {
+    scrollAreaRef.value.setScrollPosition('vertical', 0, 300);
+  }
+};
+
+const scrollToMembers = async () => {
+  await nextTick();
+  if (scrollAreaRef.value && membersSectionRef.value) {
+    const scrollTarget = membersSectionRef.value.offsetTop - 20;
+    scrollAreaRef.value.setScrollPosition('vertical', scrollTarget, 500);
+  }
+};
 
 const configOptions = computed(() => {
   return Object.keys(configurations).map((key) => ({
@@ -273,6 +314,7 @@ const onConfigChange = (newConfig: string) => {
     position: 'top',
   });
   loadFamilyMembers();
+  scrollToTop();
 };
 
 const writeSantaData = async (members: FamilyMember[]) => {
@@ -366,6 +408,9 @@ const addCouple = async () => {
   });
 
   newCouple.value = { person1: '', person2: '' };
+
+  // Scroll to members section to show the newly added member
+  scrollToMembers();
 };
 
 const editMember = (member: FamilyMember, index: number) => {
@@ -396,6 +441,9 @@ const saveEdit = async () => {
   });
 
   showEditDialog.value = false;
+
+  // Scroll to members section to show the updated member
+  scrollToMembers();
 };
 
 const deleteMember = async (member: FamilyMember, index: number) => {
@@ -485,6 +533,7 @@ const loadFamilyMembers = async () => {
 
 onMounted(() => {
   loadFamilyMembers();
+  scrollToTop();
 });
 
 watch(activeConfigVersion, () => {
@@ -495,6 +544,17 @@ watch(activeConfigVersion, () => {
 <style scoped>
 .modern-admin-page {
   padding: 0;
+  position: relative;
+  height: 100%;
+}
+
+.full-height {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
 }
 
 .page-container {
@@ -576,6 +636,28 @@ watch(activeConfigVersion, () => {
 
 .modern-toggle {
   margin-bottom: 0.75rem;
+  width: 100%;
+}
+
+.modern-toggle :deep(.q-btn) {
+  background: white;
+  color: #166534;
+  border: 2px solid #86efac;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.modern-toggle :deep(.q-btn:hover) {
+  background: #f0fdf4;
+  border-color: #4ade80;
+}
+
+.modern-toggle :deep(.q-btn.q-btn--active) {
+  background: linear-gradient(135deg, #2b6cb0 0%, #1e4db3 100%);
+  color: white;
+  border-color: #2b6cb0;
+  box-shadow: 0 2px 8px rgba(43, 108, 176, 0.3);
 }
 
 .switcher-info {
