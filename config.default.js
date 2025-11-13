@@ -3,7 +3,7 @@ module.exports = {
   appTitle: 'Thomas Family Secret Santa',
   gifteesPerSanta: 1,
   collectionName: 'santas', // Firestore collection name
-  
+
   // Firebase Configuration (shared across versions)
   firebase: {
     apiKey: 'AIzaSyCRw9sh1OmWJTL_b2HDeQXEbBDSpsz9F_w',
@@ -14,6 +14,5 @@ module.exports = {
     messagingSenderId: '1050830077055',
     appId: '1:1050830077055:web:ddf62bc6fe809d3b09534a',
     measurementId: 'G-2JEGNHVQ8B',
-  }
+  },
 };
-

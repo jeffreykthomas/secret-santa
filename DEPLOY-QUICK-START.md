@@ -4,24 +4,27 @@
 
 You now have **two separate Firebase hosting sites** ready for deployment:
 
-| Site | Family | URL |
-|------|--------|-----|
-| 🎅 **Site 1** | Thomas Family | https://secret-santa-e3f0f.web.app |
+| Site          | Family         | URL                                  |
+| ------------- | -------------- | ------------------------------------ |
+| 🎅 **Site 1** | Thomas Family  | https://secret-santa-e3f0f.web.app   |
 | 🎁 **Site 2** | Leinert Family | https://secret-santa-leinert.web.app |
 
 ## 🚀 Deploy Now
 
 ### Deploy Thomas Family
+
 ```bash
 yarn deploy:default
 ```
 
 ### Deploy Leinert Family
+
 ```bash
 yarn deploy:v2
 ```
 
 ### Deploy Both
+
 ```bash
 yarn deploy:default && yarn deploy:v2
 ```
@@ -31,12 +34,14 @@ yarn deploy:default && yarn deploy:v2
 Each site gets its own independent configuration:
 
 **Thomas Family Site:**
+
 - Title: "Thomas Family Secret Santa"
 - 1 giftee per santa
 - Data stored in `santas` collection
 - ❌ Config switcher is HIDDEN in production
 
 **Leinert Family Site:**
+
 - Title: "Leinert Family Secret Santa"
 - 2 giftees per santa
 - Data stored in `leinert-santas` collection
@@ -69,6 +74,7 @@ Before deploying to production:
 ## 🆘 Need Help?
 
 See the full **[DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)** for:
+
 - Detailed configuration explanations
 - Troubleshooting steps
 - Firebase hosting management
@@ -85,4 +91,3 @@ See the full **[DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)** for:
 ---
 
 **Ready to go?** Run `yarn deploy:default` to deploy your first site! 🎄
-

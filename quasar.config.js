@@ -68,7 +68,7 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
-      
+
       env: {
         APP_TITLE: config.appTitle,
         GIFTEES_PER_SANTA: config.gifteesPerSanta,

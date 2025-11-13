@@ -10,7 +10,8 @@
       <q-card-section class="dialog-body">
         <p class="dialog-message">
           Are you sure your name is
-          <strong class="dialog-name">{{ yourName }}</strong>?
+          <strong class="dialog-name">{{ yourName }}</strong
+          >?
         </p>
         <div class="dialog-hint">
           Once confirmed, your Secret Santa assignment will be revealed!

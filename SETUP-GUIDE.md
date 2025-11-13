@@ -18,14 +18,14 @@ Edit `config.version2.js` to customize the title and collection name:
 
 ```javascript
 module.exports = {
-  appTitle: 'Your Custom Title Here',  // Change this to your desired title
-  gifteesPerSanta: 2,                   // Keep as 2 for this version
-  collectionName: 'santas-v2',          // Different collection name for separate data
-  
+  appTitle: 'Your Custom Title Here', // Change this to your desired title
+  gifteesPerSanta: 2, // Keep as 2 for this version
+  collectionName: 'santas-v2', // Different collection name for separate data
+
   // Firebase Configuration (automatically shared with default version)
   firebase: {
     // ... same as default version
-  }
+  },
 };
 ```
 
@@ -52,6 +52,7 @@ firebase target:apply hosting version2 your-site-name-v2
 ### 4. Data Isolation
 
 Each version uses a different Firestore collection:
+
 - **Default version**: Uses `santas` collection
 - **Version 2**: Uses `santas-v2` collection
 
@@ -92,12 +93,14 @@ yarn deploy:v2
 ## 📁 Configuration Files
 
 ### `config.default.js`
+
 - Contains settings for the default version
 - 1 giftee per santa
 - Uses `santas` Firestore collection
 - Shared Firebase project configuration
 
 ### `config.version2.js`
+
 - Contains settings for version 2
 - 2 giftees per santa
 - Uses `santas-v2` Firestore collection
@@ -113,13 +116,13 @@ yarn deploy:v2
 
 ## 🎁 Key Differences Between Versions
 
-| Feature | Default Version | Version 2 |
-|---------|----------------|-----------|
-| Giftees per Santa | 1 | 2 |
-| Firebase Project | secret-santa-e3f0f | secret-santa-e3f0f (same) |
-| Firestore Collection | `santas` | `santas-v2` |
-| Data Isolation | Independent | Independent |
-| Title | Thomas Family Secret Santa | Your custom title |
+| Feature              | Default Version            | Version 2                 |
+| -------------------- | -------------------------- | ------------------------- |
+| Giftees per Santa    | 1                          | 2                         |
+| Firebase Project     | secret-santa-e3f0f         | secret-santa-e3f0f (same) |
+| Firestore Collection | `santas`                   | `santas-v2`               |
+| Data Isolation       | Independent                | Independent               |
+| Title                | Thomas Family Secret Santa | Your custom title         |
 
 ## 📝 Notes
 
@@ -138,18 +141,23 @@ yarn deploy:v2
 ## 🐛 Troubleshooting
 
 **Problem**: Configuration not loading
+
 - Solution: Check that `config.VERSION.js` exists and has valid JavaScript syntax
 
 **Problem**: Firebase deployment fails
+
 - Solution: Ensure Firebase hosting targets are properly configured with `firebase target:apply`
 
 **Problem**: Wrong number of giftees assigned
+
 - Solution: Verify `GIFTEES_PER_SANTA` in your config file
 
 **Problem**: Data mixing between versions
+
 - Solution: Verify that each config file has a different `collectionName`
 
 **Problem**: Can't see data in Firebase Console
+
 - Solution: Check the correct collection name in Firestore (e.g., `santas` or `santas-v2`)
 
 ## 📚 Additional Resources
@@ -157,4 +165,3 @@ yarn deploy:v2
 - [Quasar Framework Docs](https://quasar.dev)
 - [Firebase Hosting Docs](https://firebase.google.com/docs/hosting)
 - [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
-

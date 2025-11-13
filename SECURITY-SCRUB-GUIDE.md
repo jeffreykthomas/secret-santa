@@ -14,12 +14,14 @@ This guide explains how to remove sensitive data (Firebase credentials) from you
 ## Should You Scrub?
 
 **For Firebase Web API Keys: Probably NO**
+
 - Firebase web API keys are designed to be public
 - They're visible in browser network requests anyway
 - Your Firestore security rules are the real protection
 - The keys only identify your project, they don't authorize access
 
 **Consider scrubbing if:**
+
 - You accidentally committed actual secrets (database passwords, private keys)
 - You want to practice good security hygiene
 - You're required to by compliance regulations
@@ -157,6 +159,7 @@ Should return nothing.
 ### 2. Rotate Firebase credentials
 
 Even after scrubbing, rotate your keys:
+
 1. Firebase Console > Project Settings
 2. Regenerate Web API Key
 3. Update `.env` with new credentials
@@ -225,6 +228,7 @@ fi
 ```
 
 Make it executable:
+
 ```bash
 chmod +x .git/hooks/pre-commit
 ```
@@ -241,6 +245,7 @@ git secrets --register-aws
 ### 3. Enable GitHub secret scanning
 
 GitHub automatically scans for known secret patterns. Enable it:
+
 - Go to repository Settings > Security > Code security
 - Enable "Secret scanning"
 
@@ -250,4 +255,3 @@ GitHub automatically scans for known secret patterns. Enable it:
 - [git-filter-repo](https://github.com/newren/git-filter-repo)
 - [Removing sensitive data from GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
 - [Firebase Security Best Practices](https://firebase.google.com/support/guides/security-checklist)
-
