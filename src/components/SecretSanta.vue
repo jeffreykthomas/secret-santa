@@ -30,6 +30,24 @@
       </div>
     </div>
 
+    <!-- Warning for multiple giftees mode -->
+    <div
+      v-if="gifteesPerSanta > 1 && familyMembers.length > 0 && !confirmed"
+      class="content-section"
+    >
+      <div class="warning-card">
+        <q-icon name="info" size="24px" class="warning-icon" />
+        <div class="warning-content">
+          <div class="warning-title">Multiple Giftees Mode</div>
+          <div class="warning-text">
+            Each person will be assigned {{ gifteesPerSanta }} giftees. If you
+            get an error saying there aren't enough people available, reset the
+            assignments and have people select in a different random order.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Name Selection -->
     <div
       v-show="!confirmed && familyMembers.length > 0"
@@ -339,7 +357,17 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
     }
 
     // Prefer new pairings and avoid pairing with partners
+    // MOST IMPORTANTLY: prioritize people who have been assigned fewer times as giftees
     newArray.sort((a, b) => {
+      // Priority 1: People who have been assigned fewer times (for balanced distribution)
+      const aAssignmentCount = assignmentCounts[a.name] || 0;
+      const bAssignmentCount = assignmentCounts[b.name] || 0;
+
+      if (aAssignmentCount !== bAssignmentCount) {
+        return aAssignmentCount - bAssignmentCount;
+      }
+
+      // Priority 2: Avoid past pairings
       const aPastPairings =
         pastAssignments[familyMember.name]?.filter((name) => name === a.name)
           .length || 0;
@@ -347,13 +375,31 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
         pastAssignments[familyMember.name]?.filter((name) => name === b.name)
           .length || 0;
 
-      // Check if the potential pairing is with the person's partner
+      if (aPastPairings !== bPastPairings) {
+        return aPastPairings - bPastPairings;
+      }
+
+      // Priority 3: Avoid pairing with partners
       const aIsPartner = a.name === familyMember.partner ? 1 : 0;
       const bIsPartner = b.name === familyMember.partner ? 1 : 0;
 
-      // Sort by past pairings first, then by partner status
-      return aPastPairings - bPastPairings || aIsPartner - bIsPartner;
+      return aIsPartner - bIsPartner;
     });
+
+    // Validate there are enough available people
+    if (newArray.length < gifteesPerSanta.value) {
+      $q.loading.hide();
+      $q.notify({
+        type: 'negative',
+        message: `Not enough available people to assign! Only ${newArray.length} available but need ${gifteesPerSanta.value}. Please reset assignments and try a different order.`,
+        timeout: 5000,
+        position: 'top',
+      });
+      // Reset the selection
+      yourName.value = undefined;
+      confirmed.value = false;
+      return;
+    }
 
     // Select the configured number of giftees
     const selectedGiftees = newArray.slice(0, gifteesPerSanta.value);
@@ -492,6 +538,40 @@ onMounted(async () => {
 .empty-btn {
   padding: 0.5rem 2rem;
   font-weight: 500;
+}
+
+.warning-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #fbbf24;
+}
+
+.warning-icon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.warning-content {
+  flex: 1;
+}
+
+.warning-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.warning-text {
+  font-size: 0.9rem;
+  color: #78350f;
+  line-height: 1.5;
 }
 
 .select-card {
