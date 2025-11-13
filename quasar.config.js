@@ -68,6 +68,13 @@ module.exports = configure(function (/* ctx */) {
 
       // publicPath: '/',
       // analyze: true,
+      
+      // Pass dynamic variables to index.html template
+      htmlVariables: {
+        productName: config.appTitle,
+        productDescription: `${config.appTitle} - Secret Santa gift exchange organizer`,
+      },
+      
       env: {
         APP_TITLE: config.appTitle,
         GIFTEES_PER_SANTA: config.gifteesPerSanta,

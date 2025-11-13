@@ -2,7 +2,7 @@
   "name": "secret-santa",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "Thomas Clan Secret Santa",
+  "productName": "Secret Santa (overridden by config at build time)",
   "author": "jeffreythomas <jeffreykthomas@gmail.com>",
   "private": true,
   "scripts": {
@@ -15,7 +15,8 @@
     "build:default": "VERSION=default quasar build",
     "build:v2": "VERSION=version2 quasar build",
     "deploy:default": "VERSION=default yarn build && firebase deploy --only hosting:default",
-    "deploy:v2": "VERSION=version2 yarn build && firebase deploy --only hosting:version2"
+    "deploy:v2": "VERSION=version2 yarn build && firebase deploy --only hosting:version2",
+    "icons": "node -e \"const sharp = require('sharp'); sharp('src/assets/santa.jpeg').toFile('src/assets/santa-icon.png').then(() => console.log('✓ Converted to PNG')).catch(err => console.error(err));\" && icongenie generate -i src/assets/santa-icon.png && rm src/assets/santa-icon.png"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@quasar/app-vite": "^1.9.0",
+    "@quasar/icongenie": "^4.0.0",
     "@types/node": "^20.14.8",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
@@ -39,7 +41,7 @@
     "vue-tsc": "^2.0.29"
   },
   "engines": {
-    "node": "^20 || ^18 || ^16",
+    "node": "^22 || ^20 || ^18 || ^16",
     "npm": ">= 6.13.4",
     "yarn": ">= 1.21.1"
   }
