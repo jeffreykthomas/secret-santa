@@ -113,11 +113,46 @@
               v-for="(gift, index) in santaObject?.giftIdeas"
               :key="index"
               class="idea-item"
+              :class="{ 'gift-purchased': gift.purchasedBy }"
             >
-              <span
-                class="idea-text"
-                v-html="formatGiftIdea(gift.idea, index)"
-              ></span>
+              <div class="gift-content">
+                <span
+                  class="idea-text"
+                  v-html="formatGiftIdea(gift.idea, index)"
+                ></span>
+                <div v-if="gift.purchasedBy" class="purchased-badge">
+                  <q-icon name="shopping_bag" size="16px" />
+                  <span class="purchased-text">Purchased by {{ gift.purchasedBy }}</span>
+                </div>
+              </div>
+              <div class="gift-actions">
+                <q-btn
+                  v-if="!gift.purchasedBy"
+                  icon="shopping_cart"
+                  flat
+                  round
+                  dense
+                  size="sm"
+                  color="positive"
+                  @click="markAsPurchased(santaObject, index)"
+                  class="purchase-btn"
+                >
+                  <q-tooltip>Mark as purchased</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-else-if="gift.purchasedBy === yourName?.name"
+                  icon="undo"
+                  flat
+                  round
+                  dense
+                  size="sm"
+                  color="warning"
+                  @click="unmarkAsPurchased(santaObject, index)"
+                  class="undo-btn"
+                >
+                  <q-tooltip>Unmark as purchased</q-tooltip>
+                </q-btn>
+              </div>
             </div>
           </div>
         </div>
@@ -462,6 +497,50 @@ const deleteGiftIdea = async (
   await writeSantaData(docData);
 };
 
+const markAsPurchased = async (
+  familyMember: FamilyMember | undefined,
+  index: number
+) => {
+  if (!familyMember || !yourName.value) {
+    return;
+  }
+  let giftee = familyMembers.value.findIndex(
+    (member: FamilyMember) => member.name === familyMember.name
+  );
+  familyMembers.value[giftee].giftIdeas[index].purchasedBy = yourName.value.name;
+  var docData = familyMembers.value;
+  await writeSantaData(docData);
+  
+  $q.notify({
+    type: 'positive',
+    message: 'Gift marked as purchased!',
+    timeout: 2000,
+    position: 'top',
+  });
+};
+
+const unmarkAsPurchased = async (
+  familyMember: FamilyMember | undefined,
+  index: number
+) => {
+  if (!familyMember) {
+    return;
+  }
+  let giftee = familyMembers.value.findIndex(
+    (member: FamilyMember) => member.name === familyMember.name
+  );
+  delete familyMembers.value[giftee].giftIdeas[index].purchasedBy;
+  var docData = familyMembers.value;
+  await writeSantaData(docData);
+  
+  $q.notify({
+    type: 'info',
+    message: 'Purchase status removed',
+    timeout: 2000,
+    position: 'top',
+  });
+};
+
 onMounted(async () => {
   loading.value = true;
   const santaRef = doc(collection(db, collectionName.value), '2024');
@@ -671,6 +750,51 @@ onMounted(async () => {
 .idea-item:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
+}
+
+.idea-item.gift-purchased {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.idea-item.gift-purchased:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
+.gift-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gift-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.purchased-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: #d1fae5;
+  border-radius: 6px;
+  color: #065f46;
+  font-size: 0.85rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.purchased-text {
+  font-size: 0.85rem;
+}
+
+.purchase-btn,
+.undo-btn {
+  flex-shrink: 0;
 }
 
 .idea-text {
