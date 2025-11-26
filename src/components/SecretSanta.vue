@@ -122,7 +122,9 @@
                 ></span>
                 <div v-if="gift.purchasedBy" class="purchased-badge">
                   <q-icon name="shopping_bag" size="16px" />
-                  <span class="purchased-text">Purchased by {{ gift.purchasedBy }}</span>
+                  <span class="purchased-text">
+                    {{ gift.purchasedBy === yourName?.name ? 'Purchased by you' : 'Purchased by another Santa' }}
+                  </span>
                 </div>
               </div>
               <div class="gift-actions">
