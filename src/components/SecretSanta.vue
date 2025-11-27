@@ -30,24 +30,6 @@
       </div>
     </div>
 
-    <!-- Warning for multiple giftees mode -->
-    <div
-      v-if="gifteesPerSanta > 1 && familyMembers.length > 0 && !confirmed"
-      class="content-section"
-    >
-      <div class="warning-card">
-        <q-icon name="info" size="24px" class="warning-icon" />
-        <div class="warning-content">
-          <div class="warning-title">Multiple Giftees Mode</div>
-          <div class="warning-text">
-            Each person will be assigned {{ gifteesPerSanta }} giftees. If you
-            get an error saying there aren't enough people available, reset the
-            assignments and have people select in a different random order.
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Name Selection -->
     <div
       v-show="!confirmed && familyMembers.length > 0"
@@ -123,7 +105,11 @@
                 <div v-if="gift.purchasedBy" class="purchased-badge">
                   <q-icon name="shopping_bag" size="16px" />
                   <span class="purchased-text">
-                    {{ gift.purchasedBy === yourName?.name ? 'Purchased by you' : 'Purchased by another Santa' }}
+                    {{
+                      gift.purchasedBy === yourName?.name
+                        ? 'Purchased by you'
+                        : 'Purchased by another Santa'
+                    }}
                   </span>
                 </div>
               </div>
@@ -509,10 +495,11 @@ const markAsPurchased = async (
   let giftee = familyMembers.value.findIndex(
     (member: FamilyMember) => member.name === familyMember.name
   );
-  familyMembers.value[giftee].giftIdeas[index].purchasedBy = yourName.value.name;
+  familyMembers.value[giftee].giftIdeas[index].purchasedBy =
+    yourName.value.name;
   var docData = familyMembers.value;
   await writeSantaData(docData);
-  
+
   $q.notify({
     type: 'positive',
     message: 'Gift marked as purchased!',
@@ -534,7 +521,7 @@ const unmarkAsPurchased = async (
   delete familyMembers.value[giftee].giftIdeas[index].purchasedBy;
   var docData = familyMembers.value;
   await writeSantaData(docData);
-  
+
   $q.notify({
     type: 'info',
     message: 'Purchase status removed',
