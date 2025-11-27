@@ -11,4 +11,5 @@ export type FamilyMember = {
 
 export type GiftIdea = {
   idea: string;
+  purchasedBy?: string; // Name of the Santa who purchased this gift
 };
