@@ -224,6 +224,8 @@ import { useQuasar } from 'quasar';
 import ConfirmDialog from 'src/components/ConfirmDialog.vue';
 import SantaImage from 'src/assets/santa.jpeg';
 import { activeConfig, activeConfigVersion } from 'src/boot/config';
+import { CURRENT_YEAR, fetchPastAssignments } from 'src/utils/santa-data';
+import { pairingPenalty } from 'src/utils/draw';
 
 const $q = useQuasar();
 
@@ -256,7 +258,7 @@ const formatGiftIdea = (idea: string, index: number) => {
 // ... existing code ...
 
 const writeSantaData = async (familyMembers: FamilyMember[]) => {
-  const santaRef = doc(collection(db, collectionName.value), '2024');
+  const santaRef = doc(collection(db, collectionName.value), CURRENT_YEAR);
 
   const familyMembersMap = familyMembers.reduce((acc, member) => {
     // Clean up the member object to remove undefined values
@@ -289,41 +291,6 @@ const onNameSelected = (familyMember: FamilyMember | undefined) => {
     });
 };
 
-interface SantaListEntry {
-  couple: number;
-  assigned: boolean;
-  text: string;
-  value: string;
-  hasSanta: boolean;
-  santaFor: string;
-}
-
-// Define a type for the past assignments
-type PastAssignments = Record<string, string[]>;
-
-const fetchPastAssignments = async (): Promise<PastAssignments> => {
-  const pastAssignments: PastAssignments = {};
-  const years = ['2020', '2021', '2022', '2023'];
-
-  for (const year of years) {
-    const santaRef = doc(collection(db, collectionName.value), year);
-    const docSnap = await getDoc(santaRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.santaLists) {
-        (data.santaLists as SantaListEntry[]).forEach((entry) => {
-          if (!pastAssignments[entry.text]) {
-            pastAssignments[entry.text] = [];
-          }
-          pastAssignments[entry.text].push(entry.santaFor);
-        });
-      }
-    }
-  }
-  console.log('pastAssignments', pastAssignments);
-  return pastAssignments;
-};
-
 const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
   if (!familyMember) {
     return;
@@ -345,7 +312,7 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
       .filter((obj): obj is FamilyMember => obj !== undefined);
     $q.loading.hide();
   } else {
-    const pastAssignments = await fetchPastAssignments();
+    const pastAssignments = await fetchPastAssignments(collectionName.value);
 
     // Count how many times each person has been assigned as a giftee
     const assignmentCounts: Record<string, number> = {};
@@ -379,7 +346,7 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
       [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
 
-    // Prefer new pairings and avoid pairing with partners
+    // Avoid pairing with partners and prefer new pairings
     // MOST IMPORTANTLY: prioritize people who have been assigned fewer times as giftees
     newArray.sort((a, b) => {
       // Priority 1: People who have been assigned fewer times (for balanced distribution)
@@ -390,23 +357,11 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
         return aAssignmentCount - bAssignmentCount;
       }
 
-      // Priority 2: Avoid past pairings
-      const aPastPairings =
-        pastAssignments[familyMember.name]?.filter((name) => name === a.name)
-          .length || 0;
-      const bPastPairings =
-        pastAssignments[familyMember.name]?.filter((name) => name === b.name)
-          .length || 0;
-
-      if (aPastPairings !== bPastPairings) {
-        return aPastPairings - bPastPairings;
-      }
-
-      // Priority 3: Avoid pairing with partners
-      const aIsPartner = a.name === familyMember.partner ? 1 : 0;
-      const bIsPartner = b.name === familyMember.partner ? 1 : 0;
-
-      return aIsPartner - bIsPartner;
+      // Priority 2: Avoid partners, then repeats of past years
+      return (
+        pairingPenalty(familyMember, a, pastAssignments) -
+        pairingPenalty(familyMember, b, pastAssignments)
+      );
     });
 
     // Validate there are enough available people
@@ -532,7 +487,7 @@ const unmarkAsPurchased = async (
 
 onMounted(async () => {
   loading.value = true;
-  const santaRef = doc(collection(db, collectionName.value), '2024');
+  const santaRef = doc(collection(db, collectionName.value), CURRENT_YEAR);
   const docSnap = await getDoc(santaRef);
 
   if (docSnap.exists()) {

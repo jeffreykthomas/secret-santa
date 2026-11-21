@@ -52,6 +52,18 @@ Use this when you want to start fresh:
 - Need to reassign everyone
 - Made a mistake in assignments
 
+## 🎄 Starting a New Year
+
+Each year's exchange lives in its own Firestore document, so earlier years are kept as history and used to avoid repeat pairings.
+
+1. Set `CURRENT_YEAR` in `src/utils/santa-data.ts` to the new year
+2. Deploy both sites (`yarn deploy:default` and `yarn deploy:v2`)
+3. Open `/admin` on each site and click **Copy Roster From Last Year** (copies names and partners only; assignments and gift ideas start fresh)
+4. Add, edit or remove members as needed
+5. Click **Assign All Santas**, or let people draw by picking their name on the main page
+
+**Note**: The 2025 exchange was saved under the `2024` document. From 2026 on, the document name matches the year.
+
 ## 📊 Information Displayed
 
 For each family member, you can see:

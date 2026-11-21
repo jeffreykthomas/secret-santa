@@ -18,7 +18,8 @@
           <div class="info-content">
             <q-icon name="info_outline" size="20px" class="info-icon" />
             <span class="info-text"
-              >Collection: <code>{{ activeConfig.collectionName }}</code></span
+              >Collection: <code>{{ activeConfig.collectionName }}</code> •
+              Year: <code>{{ CURRENT_YEAR }}</code></span
             >
           </div>
         </div>
@@ -86,7 +87,20 @@
           <div v-if="familyMembers.length === 0" class="empty-state">
             <q-icon name="people_outline" size="48px" color="grey-5" />
             <p>No family members yet</p>
-            <span class="empty-hint">Add your first member above</span>
+            <span class="empty-hint"
+              >Add your first member above, or start from last year's list</span
+            >
+            <div>
+              <q-btn
+                label="Copy Roster From Last Year"
+                icon="content_copy"
+                color="primary"
+                unelevated
+                no-caps
+                @click="copyPreviousRoster"
+                class="copy-roster-btn"
+              />
+            </div>
           </div>
 
           <div v-else class="members-grid">
@@ -243,17 +257,12 @@ import {
   configurations,
   isTestingMode,
 } from 'src/boot/config';
-
-interface SantaListEntry {
-  couple: number;
-  assigned: boolean;
-  text: string;
-  value: string;
-  hasSanta: boolean;
-  santaFor: string;
-}
-
-type PastAssignments = Record<string, string[]>;
+import {
+  CURRENT_YEAR,
+  fetchPastAssignments,
+  fetchPreviousRoster,
+} from 'src/utils/santa-data';
+import { drawAll, santaForToArray } from 'src/utils/draw';
 
 defineOptions({
   name: 'AdminPage',
@@ -347,7 +356,7 @@ const onConfigChange = (newConfig: string) => {
 const writeSantaData = async (members: FamilyMember[]) => {
   const santaRef = doc(
     collection(db, activeConfig.value.collectionName),
-    '2024'
+    CURRENT_YEAR
   );
 
   const familyMembersMap = members.reduce((acc, member) => {
@@ -545,29 +554,49 @@ const resetAssignments = () => {
   });
 };
 
-const fetchPastAssignments = async (): Promise<PastAssignments> => {
-  const pastAssignments: PastAssignments = {};
-  const years = ['2020', '2021', '2022', '2023'];
-
-  for (const year of years) {
-    const santaRef = doc(
-      collection(db, activeConfig.value.collectionName),
-      year
-    );
-    const docSnap = await getDoc(santaRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.santaLists) {
-        (data.santaLists as SantaListEntry[]).forEach((entry) => {
-          if (!pastAssignments[entry.text]) {
-            pastAssignments[entry.text] = [];
-          }
-          pastAssignments[entry.text].push(entry.santaFor);
-        });
-      }
+const copyPreviousRoster = async () => {
+  $q.loading.show({ message: 'Copying roster...' });
+  try {
+    // Never overwrite a roster that already exists for this year
+    await loadFamilyMembers();
+    if (familyMembers.value.length > 0) {
+      $q.notify({
+        type: 'warning',
+        message: `${CURRENT_YEAR} already has members`,
+        position: 'top',
+      });
+      return;
     }
+
+    const previous = await fetchPreviousRoster(
+      activeConfig.value.collectionName
+    );
+    if (!previous) {
+      $q.notify({
+        type: 'negative',
+        message: 'No earlier roster found to copy',
+        position: 'top',
+      });
+      return;
+    }
+
+    familyMembers.value = previous.members;
+    await writeSantaData(familyMembers.value);
+
+    $q.notify({
+      type: 'positive',
+      message: `Copied ${previous.members.length} members from last year. Assignments and gift ideas start fresh.`,
+      position: 'top',
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Error copying roster: ' + error,
+      position: 'top',
+    });
+  } finally {
+    $q.loading.hide();
   }
-  return pastAssignments;
 };
 
 const assignAllSantas = async () => {
@@ -600,102 +629,60 @@ const assignAllSantas = async () => {
     $q.loading.show({ message: 'Assigning santas...' });
 
     try {
-      const pastAssignments = await fetchPastAssignments();
+      const pastAssignments = await fetchPastAssignments(
+        activeConfig.value.collectionName
+      );
       const gifteesPerSanta = activeConfig.value.gifteesPerSanta;
 
-      // Count how many times each person has been assigned as a giftee
-      const assignmentCounts: Record<string, number> = {};
+      const draw = drawAll(
+        familyMembers.value,
+        gifteesPerSanta,
+        pastAssignments
+      );
+      if (!draw) {
+        $q.loading.hide();
+        $q.notify({
+          type: 'negative',
+          message: `Not enough people to assign ${gifteesPerSanta} giftee(s) each. Try resetting assignments first.`,
+          position: 'top',
+        });
+        return;
+      }
+
+      const timesDrawn: Record<string, number> = {};
       familyMembers.value.forEach((member) => {
-        assignmentCounts[member.name] = 0;
+        if (draw.result[member.name]) {
+          const giftees = draw.result[member.name];
+          member.assigned = true;
+          member.santaFor = gifteesPerSanta === 1 ? giftees[0] : giftees;
+        }
+        santaForToArray(member.santaFor).forEach((name) => {
+          timesDrawn[name] = (timesDrawn[name] || 0) + 1;
+        });
       });
-
-      // Create a copy to work with
-      const members = [...familyMembers.value];
-
-      // Shuffle members for random processing order
-      for (let i = members.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [members[i], members[j]] = [members[j], members[i]];
-      }
-
-      // Assign santas for each member
-      for (const member of members) {
-        if (member.assigned) continue; // Skip if already assigned
-
-        // Filter members who haven't been assigned the maximum number of times yet
-        let potentialGiftees = familyMembers.value
-          .filter(
-            (m) =>
-              m.name !== member.name &&
-              (assignmentCounts[m.name] || 0) < gifteesPerSanta
-          )
-          .slice();
-
-        // Shuffle potential giftees
-        for (let i = potentialGiftees.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [potentialGiftees[i], potentialGiftees[j]] = [
-            potentialGiftees[j],
-            potentialGiftees[i],
-          ];
-        }
-
-        // Prefer new pairings and avoid pairing with partners
-        potentialGiftees.sort((a, b) => {
-          const aPastPairings =
-            pastAssignments[member.name]?.filter((name) => name === a.name)
-              .length || 0;
-          const bPastPairings =
-            pastAssignments[member.name]?.filter((name) => name === b.name)
-              .length || 0;
-
-          const aIsPartner = a.name === member.partner ? 1 : 0;
-          const bIsPartner = b.name === member.partner ? 1 : 0;
-
-          return aPastPairings - bPastPairings || aIsPartner - bIsPartner;
-        });
-
-        // Select the configured number of giftees
-        const selectedGiftees = potentialGiftees.slice(0, gifteesPerSanta);
-        if (selectedGiftees.length < gifteesPerSanta) {
-          $q.loading.hide();
-          $q.notify({
-            type: 'negative',
-            message: `Not enough people to assign ${gifteesPerSanta} giftee(s) for ${member.name}`,
-            position: 'top',
-          });
-          return;
-        }
-
-        const selectedNames = selectedGiftees.map((g) => g.name);
-
-        // Find the member in the original array and update
-        const memberIndex = familyMembers.value.findIndex(
-          (m) => m.name === member.name
-        );
-        familyMembers.value[memberIndex].assigned = true;
-        familyMembers.value[memberIndex].santaFor =
-          gifteesPerSanta === 1 ? selectedNames[0] : selectedNames;
-
-        // Update assignment counts
-        selectedGiftees.forEach((giftee) => {
-          assignmentCounts[giftee.name]++;
-          const gifteeIndex = familyMembers.value.findIndex(
-            (m) => m.name === giftee.name
-          );
-          familyMembers.value[gifteeIndex].hasSanta =
-            assignmentCounts[giftee.name] >= gifteesPerSanta;
-        });
-      }
+      familyMembers.value.forEach((member) => {
+        member.hasSanta = (timesDrawn[member.name] || 0) >= gifteesPerSanta;
+      });
 
       await writeSantaData(familyMembers.value);
 
       $q.loading.hide();
-      $q.notify({
-        type: 'positive',
-        message: 'All santas assigned successfully!',
-        position: 'top',
-      });
+      if (draw.partnerPairings > 0) {
+        $q.notify({
+          type: 'warning',
+          message: `Santas assigned, but ${draw.partnerPairings} partner pairing(s) could not be avoided.`,
+          position: 'top',
+        });
+      } else {
+        $q.notify({
+          type: 'positive',
+          message:
+            draw.repeats > 0
+              ? `All santas assigned! ${draw.repeats} repeat(s) from past years could not be avoided.`
+              : 'All santas assigned successfully!',
+          position: 'top',
+        });
+      }
 
       scrollToMembers();
     } catch (error) {
@@ -714,7 +701,7 @@ const loadFamilyMembers = async () => {
 
   const santaRef = doc(
     collection(db, activeConfig.value.collectionName),
-    '2024'
+    CURRENT_YEAR
   );
   const docSnap = await getDoc(santaRef);
 
@@ -923,6 +910,10 @@ watch(activeConfigVersion, () => {
 .empty-hint {
   font-size: 0.9rem;
   color: #d1d5db;
+}
+
+.copy-roster-btn {
+  margin-top: 1.25rem;
 }
 
 .members-grid {
