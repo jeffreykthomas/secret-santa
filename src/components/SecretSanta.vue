@@ -1,19 +1,13 @@
 <template>
   <div class="full-width">
-    <!-- Page Header -->
-    <div class="page-header">
-      <h1 class="page-title">Secret Santa</h1>
-      <p class="page-subtitle">Find out who you're gifting to this year!</p>
-    </div>
-
-    <!-- Santa Image -->
-    <div class="santa-image-container">
-      <q-img :src="SantaImage" alt="Santa" class="santa-image" />
+    <!-- Loading -->
+    <div v-if="loading" class="loading-state">
+      <q-spinner-dots color="primary" size="48px" />
     </div>
 
     <!-- No Family Members Message -->
-    <div v-if="familyMembers.length === 0 && !loading" class="content-section">
-      <div class="empty-state-card">
+    <div v-else-if="familyMembers.length === 0" class="content-section">
+      <div class="card empty-state-card">
         <q-icon name="people_outline" size="64px" color="grey-5" />
         <h3 class="empty-title">No Family Members Yet</h3>
         <p class="empty-text">
@@ -31,134 +25,188 @@
     </div>
 
     <!-- Name Selection -->
-    <div
-      v-show="!confirmed && familyMembers.length > 0"
-      class="content-section"
-    >
-      <div class="select-card">
-        <h3 class="select-title">Who are you?</h3>
-        <q-select
-          :options="familyMembers"
-          v-model="yourName"
-          behavior="menu"
-          outlined
-          @update:model-value="onNameSelected"
-          class="modern-select"
-        />
-      </div>
-    </div>
-    <!-- Secret Santa Reveal -->
-    <div v-show="confirmed" class="content-section">
-      <div class="reveal-card">
-        <h4 class="reveal-title">You are the Secret Santa for:</h4>
-        <div
-          class="santa-name"
-          v-for="(santa, index) in yourSantas"
-          :key="index"
-        >
-          {{ santa }}
+    <div v-else-if="!confirmed" class="content-section">
+      <div class="card select-card">
+        <q-img :src="SantaImage" alt="Santa" class="santa-image" />
+        <h1 class="select-title">Who are you?</h1>
+        <p class="select-subtitle">
+          Tap your name to find out who you're gifting to this year
+        </p>
+        <div class="name-grid">
+          <button
+            v-for="member in sortedMembers"
+            :key="member.name"
+            type="button"
+            class="name-chip"
+            @click="onNameSelected(member)"
+          >
+            <span class="avatar" :style="avatarStyle(member.name)">
+              {{ member.name.charAt(0).toUpperCase() }}
+            </span>
+            <span class="name-chip-label">{{ member.name }}</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Gift Ideas Sections -->
-    <div v-show="confirmed">
-      <!-- Ideas for the giftees -->
-      <div
-        v-for="(santaObject, gifteeIndex) in yourSantaObjects"
-        :key="gifteeIndex"
-        class="content-section"
-      >
-        <div class="gift-ideas-card">
-          <h3 class="section-title">
-            <q-icon
-              name="card_giftcard"
-              size="24px"
-              class="q-mr-sm"
-              color="negative"
-            />
-            <span
-              v-if="santaObject?.giftIdeas && santaObject?.giftIdeas.length > 0"
-            >
-              Ideas for {{ santaObject.name }}
-            </span>
-            <span v-else class="no-ideas-text">
-              {{ santaObject?.name }} has no gift ideas yet
-            </span>
-          </h3>
+    <template v-else>
+      <!-- Greeting -->
+      <div class="greeting">
+        <div class="greeting-who">
+          <span class="avatar" :style="avatarStyle(yourName?.name || '')">
+            {{ yourName?.name.charAt(0).toUpperCase() }}
+          </span>
+          <span class="greeting-text">Hi, {{ yourName?.name }}!</span>
+        </div>
+        <q-btn
+          flat
+          dense
+          no-caps
+          color="grey-8"
+          icon="swap_horiz"
+          label="Not you?"
+          @click="switchUser"
+        />
+      </div>
 
+      <!-- Secret Santa Reveal -->
+      <div class="content-section">
+        <button
+          v-if="!revealed"
+          type="button"
+          class="reveal-card reveal-closed"
+          @click="revealed = true"
+        >
+          <span class="gift-emoji" aria-hidden="true">🎁</span>
+          <span class="reveal-cta">Tap to reveal</span>
+          <span class="reveal-hint">
+            Make sure nobody is peeking over your shoulder
+          </span>
+        </button>
+        <div v-else class="reveal-card reveal-open">
+          <div class="reveal-title">You are the Secret Santa for</div>
           <div
-            v-if="santaObject?.giftIdeas && santaObject?.giftIdeas.length > 0"
-            class="ideas-list"
+            class="santa-name"
+            v-for="(santa, index) in yourSantas"
+            :key="index"
           >
-            <div
-              v-for="(gift, index) in santaObject?.giftIdeas"
-              :key="index"
-              class="idea-item"
-              :class="{ 'gift-purchased': gift.purchasedBy }"
-            >
-              <div class="gift-content">
-                <span
-                  class="idea-text"
-                  v-html="formatGiftIdea(gift.idea, index)"
-                ></span>
-                <div v-if="gift.purchasedBy" class="purchased-badge">
-                  <q-icon name="shopping_bag" size="16px" />
-                  <span class="purchased-text">
-                    {{
-                      gift.purchasedBy === yourName?.name
-                        ? 'Purchased by you'
-                        : 'Purchased by another Santa'
-                    }}
+            {{ santa }}
+          </div>
+          <q-btn
+            flat
+            dense
+            no-caps
+            color="white"
+            icon="visibility_off"
+            label="Hide"
+            class="hide-btn"
+            @click="revealed = false"
+          />
+        </div>
+      </div>
+
+      <!-- Ideas for the giftees (only once revealed, since they name them) -->
+      <template v-if="revealed">
+        <div
+          v-for="(santaObject, gifteeIndex) in yourSantaObjects"
+          :key="gifteeIndex"
+          class="content-section"
+        >
+          <div class="card gift-ideas-card">
+            <h3 class="section-title">
+              <span class="avatar" :style="avatarStyle(santaObject.name)">
+                {{ santaObject.name.charAt(0).toUpperCase() }}
+              </span>
+              {{ santaObject.name }}'s wish list
+            </h3>
+
+            <p v-if="!santaObject.giftIdeas?.length" class="no-ideas-text">
+              {{ santaObject.name }} hasn't added any ideas yet. Check back
+              later!
+            </p>
+
+            <div v-else class="ideas-list">
+              <div
+                v-for="(gift, index) in santaObject.giftIdeas"
+                :key="index"
+                class="idea-item"
+                :class="{ 'gift-purchased': gift.purchasedBy }"
+              >
+                <span class="idea-number">{{ index + 1 }}</span>
+                <div class="gift-content">
+                  <span class="idea-text">
+                    <template
+                      v-for="(part, partIndex) in parseIdea(gift.idea)"
+                      :key="partIndex"
+                    >
+                      <a
+                        v-if="part.url"
+                        :href="part.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="idea-link"
+                        ><q-icon name="open_in_new" size="14px" />{{
+                          part.text
+                        }}</a
+                      >
+                      <template v-else>{{ part.text }}</template>
+                    </template>
                   </span>
+                  <div v-if="gift.purchasedBy" class="purchased-badge">
+                    <q-icon name="check_circle" size="16px" />
+                    <span>
+                      {{
+                        gift.purchasedBy === yourName?.name
+                          ? 'Purchased by you'
+                          : 'Purchased by another Santa'
+                      }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div class="gift-actions">
-                <q-btn
-                  v-if="!gift.purchasedBy"
-                  icon="shopping_cart"
-                  flat
-                  round
-                  dense
-                  size="sm"
-                  color="positive"
-                  @click="markAsPurchased(santaObject, index)"
-                  class="purchase-btn"
-                >
-                  <q-tooltip>Mark as purchased</q-tooltip>
-                </q-btn>
-                <q-btn
-                  v-else-if="gift.purchasedBy === yourName?.name"
-                  icon="undo"
-                  flat
-                  round
-                  dense
-                  size="sm"
-                  color="warning"
-                  @click="unmarkAsPurchased(santaObject, index)"
-                  class="undo-btn"
-                >
-                  <q-tooltip>Unmark as purchased</q-tooltip>
-                </q-btn>
+                <div class="gift-actions">
+                  <q-btn
+                    v-if="!gift.purchasedBy"
+                    icon="shopping_cart"
+                    label="Got it"
+                    outline
+                    dense
+                    no-caps
+                    color="positive"
+                    @click="markAsPurchased(santaObject, index)"
+                    class="purchase-btn"
+                  >
+                    <q-tooltip>Mark as purchased</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-else-if="gift.purchasedBy === yourName?.name"
+                    icon="undo"
+                    label="Undo"
+                    flat
+                    dense
+                    no-caps
+                    color="grey-8"
+                    @click="unmarkAsPurchased(santaObject, index)"
+                    class="undo-btn"
+                  >
+                    <q-tooltip>Unmark as purchased</q-tooltip>
+                  </q-btn>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
 
       <!-- Ideas for yourself -->
       <div class="content-section">
-        <div class="gift-ideas-card your-ideas">
+        <div class="card gift-ideas-card your-ideas">
           <h3 class="section-title">
-            <q-icon
-              name="lightbulb"
-              size="24px"
-              class="q-mr-sm"
-              color="negative"
-            />
-            Your Gift Ideas
+            <q-icon name="lightbulb" size="24px" color="warning" />
+            Your wish list
           </h3>
-          <p class="section-subtitle">Add ideas for {{ yourName?.name }}</p>
+          <p class="section-subtitle">
+            Help your Secret Santa out. You can paste links too.
+          </p>
 
           <div
             v-if="yourName?.giftIdeas && yourName.giftIdeas.length > 0"
@@ -169,12 +217,25 @@
               :key="index"
               class="idea-item"
             >
-              <span
-                class="idea-text"
-                v-html="formatGiftIdea(gift.idea, index)"
-              ></span>
+              <span class="idea-number">{{ index + 1 }}</span>
+              <span class="idea-text">
+                <template
+                  v-for="(part, partIndex) in parseIdea(gift.idea)"
+                  :key="partIndex"
+                >
+                  <a
+                    v-if="part.url"
+                    :href="part.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="idea-link"
+                    ><q-icon name="open_in_new" size="14px" />{{ part.text }}</a
+                  >
+                  <template v-else>{{ part.text }}</template>
+                </template>
+              </span>
               <q-btn
-                icon="delete"
+                icon="delete_outline"
                 flat
                 round
                 dense
@@ -195,7 +256,7 @@
               outlined
               dense
               class="idea-input"
-              @keyup.enter="addGiftIdea(yourName, { idea: newGiftIdea })"
+              @keyup.enter="submitGiftIdea"
             >
               <template v-slot:append>
                 <q-btn
@@ -204,7 +265,7 @@
                   round
                   dense
                   color="primary"
-                  @click="addGiftIdea(yourName, { idea: newGiftIdea })"
+                  @click="submitGiftIdea"
                   :disable="!newGiftIdea.trim()"
                 />
               </template>
@@ -212,7 +273,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -248,14 +309,50 @@ const confirmed = ref(false);
 const newGiftIdea = ref('');
 const loading = ref(true);
 
-const formatGiftIdea = (idea: string, index: number) => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const formattedIdea = idea.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank" class="text-primary">Link</a>`;
-  });
-  return `${index + 1}. ${formattedIdea}`;
+const revealed = ref(false);
+
+const sortedMembers = computed(() =>
+  familyMembers.value.slice().sort((a, b) => a.name.localeCompare(b.name))
+);
+
+// Remember who is using this device so they don't have to pick every visit
+const rememberKey = computed(
+  () => `secretSanta:${collectionName.value}:${CURRENT_YEAR}:name`
+);
+
+// A stable colour per person for their initial avatar
+const avatarStyle = (name: string) => {
+  let hash = 0;
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
+  return { background: `hsl(${hash}, 55%, 42%)` };
 };
-// ... existing code ...
+
+interface IdeaPart {
+  text: string;
+  url?: string;
+}
+
+// Split an idea into plain text and links (links are shown as the site name)
+const parseIdea = (idea: string): IdeaPart[] => {
+  return idea
+    .split(/(https?:\/\/[^\s]+)/g)
+    .filter((part) => part !== '')
+    .map((part) => {
+      if (!/^https?:\/\//.test(part)) {
+        return { text: part };
+      }
+      try {
+        return {
+          text: new URL(part).hostname.replace(/^www\./, ''),
+          url: part,
+        };
+      } catch {
+        return { text: part };
+      }
+    });
+};
 
 const writeSantaData = async (familyMembers: FamilyMember[]) => {
   const santaRef = doc(collection(db, collectionName.value), CURRENT_YEAR);
@@ -291,13 +388,25 @@ const onNameSelected = (familyMember: FamilyMember | undefined) => {
     });
 };
 
+const switchUser = () => {
+  localStorage.removeItem(rememberKey.value);
+  yourName.value = undefined;
+  yourSantas.value = [];
+  yourSantaObjects.value = [];
+  confirmed.value = false;
+  revealed.value = false;
+  newGiftIdea.value = '';
+};
+
 const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
   if (!familyMember) {
     return;
   }
   $q.loading.show();
   confirmed.value = true;
+  revealed.value = false;
   yourName.value = familyMember;
+  localStorage.setItem(rememberKey.value, familyMember.name);
 
   let santa = familyMembers.value.findIndex(
     (member) => member.value === familyMember.value
@@ -374,8 +483,7 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
         position: 'top',
       });
       // Reset the selection
-      yourName.value = undefined;
-      confirmed.value = false;
+      switchUser();
       return;
     }
 
@@ -385,7 +493,6 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
 
     yourSantas.value = selectedNames;
     yourSantaObjects.value = selectedGiftees;
-    console.log('yourSantas', yourSantas.value);
 
     familyMembers.value[santa].assigned = true;
     familyMembers.value[santa].santaFor =
@@ -403,7 +510,6 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
     });
 
     var docData = familyMembers.value;
-    console.log(docData);
     await writeSantaData(docData);
     $q.loading.hide();
   }
@@ -413,17 +519,20 @@ const addGiftIdea = async (
   familyMember: FamilyMember | undefined,
   gift: GiftIdea
 ) => {
-  if (!familyMember) {
+  if (!familyMember || !gift.idea.trim()) {
     return;
   }
   let giftee = familyMembers.value.findIndex(
     (index: FamilyMember) => index.name === familyMember.name
   );
-  familyMembers.value[giftee].giftIdeas.push(gift);
+  familyMembers.value[giftee].giftIdeas.push({ idea: gift.idea.trim() });
   var docData = familyMembers.value;
   await writeSantaData(docData);
   newGiftIdea.value = '';
 };
+
+const submitGiftIdea = () =>
+  addGiftIdea(yourName.value, { idea: newGiftIdea.value });
 
 const deleteGiftIdea = async (
   familyMember: FamilyMember | undefined,
@@ -494,55 +603,59 @@ onMounted(async () => {
     const data = docSnap.data();
     if (data.familyMembers) {
       familyMembers.value = Object.values(data.familyMembers) as FamilyMember[];
-      console.log('data', data);
     }
   }
   loading.value = false;
+
+  // Returning visitor who has already drawn: skip the name picker
+  const rememberedName = localStorage.getItem(rememberKey.value);
+  const remembered = familyMembers.value.find(
+    (member) => member.name === rememberedName
+  );
+  if (remembered?.assigned) {
+    await showSecretSanta(remembered);
+  } else if (rememberedName) {
+    localStorage.removeItem(rememberKey.value);
+  }
 });
 </script>
 <style scoped>
-.page-header {
-  text-align: center;
-  margin-bottom: 2rem;
+.content-section {
+  margin-bottom: 1.25rem;
 }
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0 0 0.5rem 0;
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e5e9f2;
 }
 
-.page-subtitle {
-  font-size: 0.95rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.santa-image-container {
+.loading-state {
   display: flex;
   justify-content: center;
-  margin-bottom: 2rem;
+  padding: 4rem 0;
 }
 
-.santa-image {
-  max-width: 300px;
-  width: 100%;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.content-section {
-  margin-bottom: 2rem;
-}
-
+/* Empty state */
 .empty-state-card {
-  background: white;
-  border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
 }
 
 .empty-title {
@@ -550,6 +663,7 @@ onMounted(async () => {
   font-weight: 600;
   color: #1a1a1a;
   margin: 1rem 0 0.5rem 0;
+  line-height: 1.3;
 }
 
 .empty-text {
@@ -563,103 +677,221 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.warning-card {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #fbbf24;
-}
-
-.warning-icon {
-  color: #d97706;
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-}
-
-.warning-content {
-  flex: 1;
-}
-
-.warning-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #92400e;
-  margin-bottom: 0.5rem;
-}
-
-.warning-text {
-  font-size: 0.9rem;
-  color: #78350f;
-  line-height: 1.5;
-}
-
+/* Name picker */
 .select-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.santa-image {
+  width: 132px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .select-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 1rem 0 0.25rem;
+  line-height: 1.3;
+}
+
+.select-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0 0 1.25rem;
+}
+
+.name-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+
+.name-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #dbe2ee;
+  background: #f8fafc;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.name-chip:hover,
+.name-chip:focus-visible {
+  border-color: #2563eb;
+  background: #eff5ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+.name-chip:active {
+  transform: scale(0.97);
+}
+
+.name-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Greeting */
+.greeting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.greeting-who {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.greeting-text {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1a1a1a;
-  margin: 0 0 1.5rem 0;
-  text-align: center;
+  color: #0f172a;
 }
 
-.modern-select {
-  font-size: 1.1rem;
-}
-
+/* Reveal */
 .reveal-card {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-radius: 12px;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #60a5fa;
+  color: white;
+  border: none;
+  font: inherit;
+  background: linear-gradient(150deg, #b91c1c 0%, #dc2626 60%, #ef4444 100%);
+  box-shadow: 0 8px 24px rgba(185, 28, 28, 0.3);
+}
+
+.reveal-closed {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.reveal-closed:hover,
+.reveal-closed:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(185, 28, 28, 0.38);
+  outline: none;
+}
+
+.gift-emoji {
+  font-size: 3.5rem;
+  line-height: 1;
+  animation: gift-wiggle 2.4s ease-in-out infinite;
+}
+
+.reveal-cta {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 0.75rem;
+}
+
+.reveal-hint {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-top: 0.25rem;
+}
+
+.reveal-open {
+  animation: reveal-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
 .reveal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e40af;
-  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
 }
 
 .santa-name {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 700;
-  color: #1e40af;
-  font-style: italic;
-  margin: 0.5rem 0;
+  line-height: 1.25;
 }
 
-.gift-ideas-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+.hide-btn {
+  margin-top: 0.75rem;
+  opacity: 0.85;
 }
 
+@keyframes gift-wiggle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  76% {
+    transform: rotate(-9deg) scale(1.08);
+  }
+  82% {
+    transform: rotate(9deg) scale(1.08);
+  }
+  88% {
+    transform: rotate(-5deg) scale(1.04);
+  }
+  94% {
+    transform: rotate(5deg) scale(1.02);
+  }
+}
+
+@keyframes reveal-pop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-emoji,
+  .reveal-open {
+    animation: none;
+  }
+}
+
+/* Wish lists */
 .gift-ideas-card.your-ideas {
-  border: 2px solid #2563eb;
+  border-top: 4px solid #2563eb;
 }
 
 .section-title {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #0f172a;
   margin: 0 0 1rem 0;
+  line-height: 1.3;
   display: flex;
   align-items: center;
+  gap: 0.6rem;
+}
+
+.your-ideas .section-title {
+  margin-bottom: 0.25rem;
 }
 
 .section-subtitle {
@@ -670,30 +902,28 @@ onMounted(async () => {
 
 .no-ideas-text {
   color: #6b7280;
-  font-style: italic;
+  margin: 0;
 }
 
 .ideas-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
   margin-bottom: 1rem;
+}
+
+.gift-ideas-card:not(.your-ideas) .ideas-list {
+  margin-bottom: 0;
 }
 
 .idea-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s;
-}
-
-.idea-item:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e5e9f2;
 }
 
 .idea-item.gift-purchased {
@@ -701,89 +931,94 @@ onMounted(async () => {
   border-color: #86efac;
 }
 
-.idea-item.gift-purchased:hover {
-  background: #dcfce7;
-  border-color: #4ade80;
+.idea-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gift-purchased .idea-number {
+  background: #bbf7d0;
+  color: #166534;
 }
 
 .gift-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
-.gift-actions {
-  display: flex;
+.idea-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.idea-link {
+  display: inline-flex;
+  align-items: center;
   gap: 0.25rem;
-  margin-left: 0.5rem;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  background: #e0ebff;
+  color: #1d4ed8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+.idea-link:hover {
+  background: #c7dbff;
 }
 
 .purchased-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  background: #d1fae5;
-  border-radius: 6px;
-  color: #065f46;
+  gap: 0.35rem;
+  color: #166534;
   font-size: 0.85rem;
   font-weight: 500;
-  width: fit-content;
 }
 
-.purchased-text {
-  font-size: 0.85rem;
+.gift-actions {
+  flex-shrink: 0;
 }
 
 .purchase-btn,
 .undo-btn {
-  flex-shrink: 0;
-}
-
-.idea-text {
-  flex: 1;
-  font-size: 1rem;
-  color: #1a1a1a;
-  word-break: break-word;
-}
-
-.idea-text :deep(a) {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-.delete-btn {
-  margin-left: 0.5rem;
-}
-
-.add-idea-section {
-  margin-top: 1rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
 }
 
 .idea-input {
   font-size: 1rem;
 }
 
-.pointer {
-  cursor: pointer;
-}
-
 @media (max-width: 600px) {
-  .page-title {
-    font-size: 1.75rem;
+  .card {
+    padding: 1.25rem;
   }
 
   .santa-name {
-    font-size: 1.75rem;
+    font-size: 1.9rem;
   }
 
-  .section-title {
-    font-size: 1.1rem;
-  }
-
-  .santa-image {
-    max-width: 250px;
+  .name-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

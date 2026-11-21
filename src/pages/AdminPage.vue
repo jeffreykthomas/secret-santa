@@ -82,6 +82,30 @@
         <div ref="membersSectionRef" class="members-section">
           <div class="section-header">
             <h2 class="section-title">Members ({{ familyMembers.length }})</h2>
+            <div v-if="familyMembers.length > 0" class="section-tools">
+              <span
+                class="draw-status"
+                :class="{
+                  'draw-complete': drawnCount === familyMembers.length,
+                }"
+              >
+                <q-icon
+                  :name="
+                    drawnCount === familyMembers.length
+                      ? 'check_circle'
+                      : 'hourglass_empty'
+                  "
+                  size="16px"
+                />
+                {{ drawnCount }} of {{ familyMembers.length }} have drawn
+              </span>
+              <q-toggle
+                v-model="showAssignments"
+                label="Show who has whom"
+                dense
+                size="sm"
+              />
+            </div>
           </div>
 
           <div v-if="familyMembers.length === 0" class="empty-state">
@@ -117,11 +141,19 @@
                 <div v-if="member.partner" class="member-meta">
                   Partner: {{ member.partner }}
                 </div>
-                <div v-if="member.santaFor" class="member-meta">
-                  <span v-if="Array.isArray(member.santaFor)">
-                    Santa for: {{ member.santaFor.join(', ') }}
+                <div class="member-meta">
+                  <span v-if="!member.assigned" class="status-pending">
+                    Hasn't drawn yet
                   </span>
-                  <span v-else> Santa for: {{ member.santaFor }} </span>
+                  <span v-else-if="showAssignments">
+                    Santa for: {{ santaForToArray(member.santaFor).join(', ') }}
+                  </span>
+                  <span v-else class="status-drawn">Has drawn</span>
+                  <span v-if="member.giftIdeas?.length">
+                    • {{ member.giftIdeas.length }} gift idea{{
+                      member.giftIdeas.length > 1 ? 's' : ''
+                    }}
+                  </span>
                 </div>
               </div>
               <div class="member-actions">
@@ -311,6 +343,12 @@ const configOptions = computed(() => {
 });
 
 const familyMembers = ref<FamilyMember[]>([]);
+
+// Assignments stay hidden unless asked for, so the organiser isn't spoiled
+const showAssignments = ref(false);
+const drawnCount = computed(
+  () => familyMembers.value.filter((member) => member.assigned).length
+);
 const newCouple = ref({
   person1: '',
   person2: '',
@@ -893,7 +931,49 @@ watch(activeConfigVersion, () => {
 }
 
 .section-header {
-  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-header .section-title {
+  margin: 0;
+}
+
+.section-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.draw-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.draw-status.draw-complete {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pending {
+  color: #b45309;
+}
+
+.status-drawn {
+  color: #15803d;
 }
 
 .empty-state {
