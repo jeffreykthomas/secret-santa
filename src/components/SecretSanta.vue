@@ -71,19 +71,44 @@
 
       <!-- Secret Santa Reveal -->
       <div class="content-section">
+        <div v-if="drawing" class="reveal-card reveal-drawing">
+          <div class="reveal-title">Drawing from the hat...</div>
+          <div
+            class="santa-name shuffle-name"
+            v-for="(name, index) in shuffleNames"
+            :key="index"
+          >
+            {{ name }}
+          </div>
+        </div>
         <button
-          v-if="!revealed"
+          v-else-if="!revealed"
           type="button"
           class="reveal-card reveal-closed"
-          @click="revealed = true"
+          @click="onReveal"
         >
           <span class="gift-emoji" aria-hidden="true">🎁</span>
-          <span class="reveal-cta">Tap to reveal</span>
+          <span class="reveal-cta">
+            {{ hasSeenDraw ? 'Tap to reveal' : 'Tap to draw' }}
+          </span>
           <span class="reveal-hint">
             Make sure nobody is peeking over your shoulder
           </span>
         </button>
-        <div v-else class="reveal-card reveal-open">
+        <div
+          v-else
+          class="reveal-card reveal-open"
+          :class="{ 'just-drawn': justDrawn }"
+        >
+          <div v-if="justDrawn" class="confetti" aria-hidden="true">
+            <span
+              v-for="(piece, index) in confettiPieces"
+              :key="index"
+              class="confetti-piece"
+              :style="piece.style"
+              >{{ piece.emoji }}</span
+            >
+          </div>
           <div class="reveal-title">You are the Secret Santa for</div>
           <div
             class="santa-name"
@@ -278,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
 import { db, collection, setDoc, doc, getDoc } from 'src/boot/firebase';
 import { FamilyMember, GiftIdea } from 'src/components/models';
 import { useQuasar } from 'quasar';
@@ -310,6 +335,34 @@ const newGiftIdea = ref('');
 const loading = ref(true);
 
 const revealed = ref(false);
+
+// The first reveal on a device plays a short "drawing from the hat" animation
+const drawing = ref(false);
+const justDrawn = ref(false);
+const hasSeenDraw = ref(false);
+const shuffleNames = ref<string[]>([]);
+let shuffleTimer: ReturnType<typeof setTimeout> | undefined;
+
+const CONFETTI_EMOJIS = ['🎉', '❄️', '⭐', '🎄', '✨', '🎁'];
+const confettiPieces = Array.from({ length: 14 }, (_, index) => {
+  const angle = (index / 14) * Math.PI * 2;
+  const distance = 110 + (index % 3) * 35;
+  return {
+    emoji: CONFETTI_EMOJIS[index % CONFETTI_EMOJIS.length],
+    style: {
+      '--dx': `${Math.round(Math.cos(angle) * distance)}px`,
+      '--dy': `${Math.round(Math.sin(angle) * distance * 0.7)}px`,
+      animationDelay: `${(index % 4) * 40}ms`,
+    },
+  };
+});
+
+const stopDrawAnimation = () => {
+  clearTimeout(shuffleTimer);
+  drawing.value = false;
+  justDrawn.value = false;
+};
+onBeforeUnmount(stopDrawAnimation);
 
 const sortedMembers = computed(() =>
   familyMembers.value.slice().sort((a, b) => a.name.localeCompare(b.name))
@@ -388,7 +441,51 @@ const onNameSelected = (familyMember: FamilyMember | undefined) => {
     });
 };
 
+const seenDrawKey = (name: string) => `${rememberKey.value}:seen:${name}`;
+
+const onReveal = () => {
+  const name = yourName.value?.name;
+  const reducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  ).matches;
+  if (!name || hasSeenDraw.value || reducedMotion) {
+    justDrawn.value = false;
+    revealed.value = true;
+    return;
+  }
+
+  // Flick through other people's names, slowing down, then land on the result
+  const pool = familyMembers.value
+    .map((member) => member.name)
+    .filter((other) => other !== name);
+  const slots = yourSantas.value.length;
+  let delay = 70;
+  let last: string[] = [];
+
+  const tick = () => {
+    if (delay > 420) {
+      drawing.value = false;
+      justDrawn.value = true;
+      revealed.value = true;
+      hasSeenDraw.value = true;
+      localStorage.setItem(seenDrawKey(name), '1');
+      return;
+    }
+    const fresh = pool.filter((other) => !last.includes(other));
+    last = (fresh.length >= slots ? fresh : pool)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, slots);
+    shuffleNames.value = last;
+    delay *= 1.12;
+    shuffleTimer = setTimeout(tick, delay);
+  };
+
+  drawing.value = true;
+  tick();
+};
+
 const switchUser = () => {
+  stopDrawAnimation();
   localStorage.removeItem(rememberKey.value);
   yourName.value = undefined;
   yourSantas.value = [];
@@ -405,6 +502,9 @@ const showSecretSanta = async (familyMember: FamilyMember | undefined) => {
   $q.loading.show();
   confirmed.value = true;
   revealed.value = false;
+  stopDrawAnimation();
+  hasSeenDraw.value =
+    localStorage.getItem(seenDrawKey(familyMember.name)) === '1';
   yourName.value = familyMember;
   localStorage.setItem(rememberKey.value, familyMember.name);
 
@@ -813,7 +913,68 @@ onMounted(async () => {
 }
 
 .reveal-open {
+  position: relative;
   animation: reveal-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.reveal-open.just-drawn {
+  animation: reveal-land 0.7s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.reveal-drawing .reveal-title {
+  animation: drawing-pulse 0.9s ease-in-out infinite;
+}
+
+.shuffle-name {
+  opacity: 0.75;
+  filter: blur(0.6px);
+}
+
+.confetti {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  font-size: 1.4rem;
+  opacity: 0;
+  animation: confetti-burst 1.3s ease-out forwards;
+}
+
+@keyframes reveal-land {
+  0% {
+    transform: scale(0.85);
+  }
+  55% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes drawing-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes confetti-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+      scale(1.1) rotate(40deg);
+    opacity: 0;
+  }
 }
 
 .reveal-title {
